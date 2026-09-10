@@ -241,20 +241,31 @@
 <script>
 // ---------------------------------------------------------------
 //  Palette — 8 basic colors, picked from the sky each day (wear any shade you own)
+//  `weight` = how often it comes up, tuned to what the closets actually hold.
+//  Deep stock (brown/red/black/white/blue/grey) = 3, thin (green) = 2, rare (purple) = 1.
 // ---------------------------------------------------------------
 const PALETTE = [
-  { label: "Purple", hex: "#8E63C4", qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
-  { label: "Red",    hex: "#C4453A", qualifies: "maroon, burgundy, brick, coral, rust, wine" },
-  { label: "Blue",   hex: "#3A6FA8", qualifies: "navy, sky, steel, denim, powder, teal" },
-  { label: "Green",  hex: "#4E8A5A", qualifies: "olive, forest, sage, emerald, moss, pine" },
-  { label: "Brown",  hex: "#7A5230", qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
-  { label: "Grey",   hex: "#8A8D8F", qualifies: "charcoal, slate, silver, heather, stone, dove" },
-  { label: "White",  hex: "#F1EFEA", qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
-  { label: "Black",  hex: "#2E2E2E", qualifies: "charcoal, graphite, slate, dark grey, onyx" },
+  { label: "Purple", hex: "#8E63C4", weight: 1, qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
+  { label: "Red",    hex: "#C4453A", weight: 3, qualifies: "maroon, burgundy, brick, coral, rust, wine" },
+  { label: "Blue",   hex: "#3A6FA8", weight: 3, qualifies: "navy, sky, steel, denim, powder, teal" },
+  { label: "Green",  hex: "#4E8A5A", weight: 2, qualifies: "olive, forest, sage, emerald, moss, pine" },
+  { label: "Brown",  hex: "#7A5230", weight: 3, qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
+  { label: "Grey",   hex: "#8A8D8F", weight: 3, qualifies: "charcoal, slate, silver, heather, stone, dove" },
+  { label: "White",  hex: "#F1EFEA", weight: 3, qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
+  { label: "Black",  hex: "#2E2E2E", weight: 3, qualifies: "charcoal, graphite, slate, dark grey, onyx" },
 ];
+//  Expand weights into a lookup so the hash lands on well-stocked colors more often
+const WEIGHTED = PALETTE.flatMap(c => Array(c.weight).fill(c));
 
 //  Pink is a rare treat, not part of the rotation — see isPinkFriday()
 const PINK = { label: "Pink", hex: "#E88AA0", qualifies: "blush, rose, magenta, raspberry, petal, mauve" };
+
+//  Flannel Fridays — Jasmin's idea. Any flannel, any color, all fall (Oct 1 – Nov 30). 🍂
+const FLANNEL = { label: "Flannel", hex: "#8B3A2E", qualifies: "any flannel — red, brown, black, white, plaid, whatever you've got" };
+function isFlannelFriday(d) {
+  const m = d.getMonth() + 1;
+  return d.getDay() === 5 && (m === 10 || m === 11);
+}
 
 //  Orange lives only here — the one week a year it's allowed 🎃
 const ORANGE = { label: "Orange", hex: "#E0822E", qualifies: "burnt orange, rust, pumpkin, amber, copper, peach" };
@@ -372,7 +383,7 @@ function celestialIndex(sign, moon, dow) {
   const signIdx = SIGNS.indexOf(sign);            // 0..11  (sun's annual position)
   const moonSteps = Math.round(moon.frac * 1000); // 0..1000 (moon's continuous position)
   const x = signIdx * 100000 + dow * 10000 + moonSteps;
-  return hash32(x) % PALETTE.length;
+  return hash32(x) % WEIGHTED.length;
 }
 
 // ---------------------------------------------------------------
@@ -461,21 +472,27 @@ function colorForDate(date) {
       family:{label:hol.color.label, qualifies:hol.color.qualifies} };
   }
 
+  // Flannel Fridays all fall — Jasmin's idea; outranks Pink Friday in Oct/Nov
+  if (isFlannelFriday(d)) {
+    return { weekend:false, day, sign, moon, isPink:false, isFlannel:true, holiday:null,
+      shade:{name:FLANNEL.label, hex:FLANNEL.hex},
+      family:{label:FLANNEL.label, qualifies:FLANNEL.qualifies} };
+  }
+
   if (isPinkFriday(d)) {
     return { weekend:false, day, sign, moon, isPink:true, holiday:null,
       shade:{name:PINK.label, hex:PINK.hex},
       family:{label:PINK.label, qualifies:PINK.qualifies} };
   }
 
-  let idx = celestialIndex(sign, moon, dow);
-  // Keep two weekdays in a row from landing on the same color (stays lively)
+  let c = WEIGHTED[celestialIndex(sign, moon, dow)];
+  // Keep two weekdays in a row from landing on the same color (stays lively).
+  // Compare colors, not indices — the weighted table maps several indices to one color.
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
   if (prev.getDay() >= 1 && prev.getDay() <= 5) {
-    if (idx === celestialIndex(getSign(prev), getMoon(prev), prev.getDay())) {
-      idx = (idx + 3) % PALETTE.length;
-    }
+    const pc = WEIGHTED[celestialIndex(getSign(prev), getMoon(prev), prev.getDay())];
+    if (c === pc) c = PALETTE[(PALETTE.indexOf(c) + 3) % PALETTE.length];
   }
-  const c = PALETTE[idx];
   return {
     weekend:false, day, sign, moon, isPink:false, holiday:null,
     shade:{name:c.label, hex:c.hex},
@@ -519,31 +536,33 @@ function renderHero(date) {
     : r.holiday
       ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
       : r.day.name + " · " + r.day.planet + " · " + r.sign.sym + " " + r.sign.name + " · " + r.moon.emoji + " " + r.moon.name
-        + (r.isPink ? " — Pink Friday!" : "");
+        + (r.isFlannel ? " — 🍂 Flannel Friday!" : r.isPink ? " — Pink Friday!" : "");
 
   // Tomorrow whisper — next workday's color, for planning
   const nxt = nextWorkday(date);
   const nr = colorForDate(nxt);
   const nxtLabel = nxt.toLocaleDateString(undefined, { weekday:"long" });
-  el("swTomorrow").textContent = nxtLabel + ": " + nr.shade.name + (nr.holiday ? " " + nr.holiday.emoji : nr.isPink ? " 💗" : "");
+  el("swTomorrow").textContent = nxtLabel + ": " + nr.shade.name + (nr.holiday ? " " + nr.holiday.emoji : nr.isFlannel ? " 🍂" : nr.isPink ? " 💗" : "");
 
   const q = el("qualifies");
   if (r.weekend) {
     q.innerHTML = "<b>Weekend.</b> " + r.family.qualifies;
   } else if (r.holiday) {
     q.innerHTML = r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>. Holidays overrule the sky!";
+  } else if (r.isFlannel) {
+    q.innerHTML = "🍂 <b>Flannel Friday</b> — <i>" + r.family.qualifies + "</i>. It's fall. Cozy up.";
   } else {
     q.innerHTML = "<b>" + r.family.label + "</b> today — any shade counts: <i>" + r.family.qualifies + "</i>. Do your best!";
   }
 
   // Why chips — with a voice
   const why = el("why");
-  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.isPink ? "Pink Friday!" : "sun · moon · day";
+  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.isFlannel ? "🍂 Flannel Friday" : r.isPink ? "Pink Friday!" : "sun · moon · day";
   const rows = [
     { icon: r.day.sym,    label:"Day",   value: r.day.name + " · " + r.day.planet, voice: PLANET_VOICE[r.day.planet] || "" },
     { icon: r.sign.sym,   label:"Sun",   value: r.sign.name + " · " + ELEMENTS[r.sign.el].name, voice: SIGN_VOICE[r.sign.name] || "" },
     { icon: r.moon.emoji, label:"Moon",  value: r.moon.name, voice: MOON_VOICE[r.moon.name] || "" },
-    { icon: "✨",         label:"Blend", value: blendValue, voice: r.holiday ? r.holiday.note : r.isPink ? "Venus's day, once a month, in her color." : r.weekend ? "No rules on the weekend." : "Three sky-readings hashed into one color." },
+    { icon: "✨",         label:"Blend", value: blendValue, voice: r.holiday ? r.holiday.note : r.isFlannel ? "Jasmin's idea. Any flannel counts — the color is yours." : r.isPink ? "Venus's day, once a month, in her color." : r.weekend ? "No rules on the weekend." : "Three sky-readings hashed into one color." },
   ];
   why.innerHTML = rows.map(row => `
     <div class="why-chip">
@@ -600,7 +619,7 @@ function renderMonth() {
     cell.innerHTML = `
       <div class="num">${d}</div>
       <div class="bar" style="background:${r.shade.hex}"></div>
-      <div class="cn">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji : r.isPink ? "💗" : r.shade.name)}</div>`;
+      <div class="cn">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.isPink ? "💗" : r.shade.name)}</div>`;
     cell.onclick = () => { selected = dt; renderAll(); };
     grid.appendChild(cell);
   }
