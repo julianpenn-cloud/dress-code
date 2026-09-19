@@ -502,6 +502,7 @@ const PALETTE = [
   { label:"Burgundy", hex:"#722F37", team:"The Vintners",     curve:[2, 2, 1, 0, 0, 0, 0, 0, 2, 3, 3, 3], temp:"warm",    tone:"dark",  qualifies:"burgundy, wine, maroon, oxblood, merlot, garnet" },
   { label:"Plum",     hex:"#5B3A6B", team:"The Twilight",     curve:[3, 3, 2, 1, 0, 0, 0, 0, 0, 1, 2, 3], temp:"cool",    tone:"dark",  qualifies:"plum, eggplant, aubergine, mulberry, damson, fig" },
   { label:"Pink",     hex:"#E88AA0", team:"The Rose Garden",  curve:[0, 1, 2, 3, 3, 2, 2, 2, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"blush, rose, magenta, raspberry, petal, dusty rose" },
+  { label:"Orange",   hex:"#E0822E", team:"The Harvest",       curve:[0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 2, 1], temp:"warm",    tone:"mid",   qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" },
 ];
 const byLabel = l => PALETTE.find(c => c.label === l);
 
@@ -524,7 +525,7 @@ const THEME_WEEKS = [
   { name:"Neutrals Week",    emoji:"🪨", anchor:[3,11],  colors:["Grey","Brown","White","Black"],           note:"Calm and quiet — let texture do the talking" },
   { name:"Fresh Start Week", emoji:"🌱", anchor:[5,6],   colors:["Sage","Green","Yellow","White","Teal","Pink"], note:"Spring on your sleeve — light, bright, awake" },
   { name:"Summer Sky Week",  emoji:"🌤️", anchor:[7,15],  colors:["Blue","White","Yellow","Teal","Coral"],   note:"Sky, cloud, sun, sea — nothing heavier" },
-  { name:"Earth Tone Week",  emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Burgundy","Grey"],        note:"Harvest colors — warm, grounded, layered" },
+  { name:"Earth Tone Week",  emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Burgundy","Grey","Orange"], note:"Harvest colors — warm, grounded, layered" },
   { name:"Monochrome Week",  emoji:"◐",  anchor:[11,11], colors:["Black","Grey","White"],                   note:"One color head to toe — any shade, all the way down" },
 ];
 function mondayOf(d) {
@@ -661,7 +662,9 @@ const VERSES = {
     autumn: ["Pink. Dusty rose, a late bloom,\nnot fooled by the calendar.", "Pink today — the sunset's\nlast soft word."],
   },
   Orange: {
-    autumn: ["Orange. Pumpkins on the step,\nleaves in the gutter. Lean in.", "Orange today — the whole month\nagreed on this one."],
+    summer: ["Orange. The last week of August\nturning up the heat one more notch.", "Orange today — late-summer light,\nthe color of the good peaches."],
+    autumn: ["Orange. The maples' loud cousin.\nLean in — it's the season for it.", "Orange today. Pumpkins, leaves,\nthe whole month agreed on this one.", "Orange — rust on the hinge,\nthe last warm color before the grey."],
+    winter: ["Orange. A fire in the grate,\nthe one warm thing in December.", "Orange today — a clementine\nin the middle of all that white."],
   },
 };
 //  Small additions, one line each
@@ -769,9 +772,7 @@ async function refreshWeather() {
 //  normal seasonal pick; flannel never replaces or outranks anything.
 //  Odds follow a cold-season curve (per month, in 1/16ths): quiet in October,
 //  peak Dec–Jan, fading out by April. Never two days in a row.
-//  Orange lives only in Halloween week.
 // ---------------------------------------------------------------
-const ORANGE = { label:"Orange", hex:"#E0822E", team:"The Pumpkin Patch", qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" };
 const FLANNEL_CURVE = [3, 3, 2, 0, 0, 0, 0, 0, 0, 1, 2, 3];   // Jan..Dec, out of 16 → peak ≈ 1 in 5, shoulder ≈ 1 in 16
 const daySeed = d => d.getFullYear() * 1000 + Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
 const flannelRoll = d => hash32(daySeed(d) ^ 0x5EED) % 16 < FLANNEL_CURVE[d.getMonth()];
@@ -784,7 +785,7 @@ const HOLIDAYS = [
   { name:"Valentine's Day",   emoji:"🌹", color:byLabel("Pink"),    when:[2,14],  note:"Pink or red, your call" },
   { name:"St. Patrick's Day", emoji:"☘️", color:byLabel("Green"),   when:[3,17],  note:"Green or get pinched" },
   { name:"Independence Day",  emoji:"🎆", color:byLabel("Red"),     when:[7,4],   note:"Red, white & blue — any of the three" },
-  { name:"Halloween Week",    emoji:"🎃", color:ORANGE,             range:{from:[10,26], to:[10,31]}, note:"The one week orange is allowed" },
+  { name:"Halloween Week",    emoji:"🎃", color:byLabel("Orange"),  range:{from:[10,26], to:[10,31]}, note:"Pumpkin week — orange all the way" },
   { name:"Christmas Week",    emoji:"🎄", color:byLabel("Red"),     range:{from:[12,21], to:[12,24]}, note:"Red one day, green the next" },
   { name:"New Year's Eve",    emoji:"🥂", color:byLabel("Black"),   when:[12,31], note:"Black tie, or close enough" },
 ];
@@ -860,14 +861,13 @@ function colorForDate(date) {
 
   let c = pickColor(d, wx);
   // No two days in a row on the same color. Compare to yesterday's *final* color and
-  // bump within today's active set (so seasonal colors never leak out of season).
+  // bump within today's active set (so seasonal/theme colors never leak out of their set).
+  // Applies across theme-week boundaries too — the bump only ever picks from today's set.
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
-  if (!themeWeekFor(prev) === !theme) {
-    const pr = colorForDate(prev);
-    if (!pr.holiday && pr.shade.name === c.label) {
-      const active = [...new Set(weightedFor(d, wx))];
-      c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
-    }
+  const pr = colorForDate(prev);
+  if (!pr.holiday && pr.shade.name === c.label) {
+    const active = [...new Set(weightedFor(d, wx))];
+    if (active.length > 1) c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
   }
   return pick(c, {});
 }
