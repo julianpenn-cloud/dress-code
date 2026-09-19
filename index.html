@@ -352,12 +352,12 @@
 //  TOGA — a color a day, chosen by the season (and, if you like, the weather)
 //
 //  How a day gets its color, in order:
-//    1. Weekend? free day.
-//    2. Holiday? that color wins.
-//    3. Theme week? pick from the theme's colors only.
-//    4. Flannel / Pink? rare rolls (cold season for flannel).
-//    5. Otherwise: seasonal drift × weather mood → weighted table → hashed pick.
-//  Deterministic from the date (+ locked forecast), so every phone agrees.
+//    1. Holiday? that color wins.
+//    2. Theme week? pick from the theme's colors only.
+//    3. Flannel? rare cold-season roll (a texture, not a color).
+//    4. Otherwise: seasonal drift × weather mood → weighted table → hashed pick.
+//  Every day gets a color, weekends included. Deterministic from the date
+//  (+ locked forecast), so every phone agrees.
 // ===============================================================
 
 // ---------------------------------------------------------------
@@ -382,6 +382,7 @@ const PALETTE = [
   { label:"Sage",     hex:"#9CAF88", team:"The Herb Garden",  curve:[0, 0, 2, 3, 3, 2, 1, 1, 1, 0, 0, 0], temp:"cool",    tone:"light", qualifies:"sage, eucalyptus, celadon, mint, pistachio, moss" },
   { label:"Burgundy", hex:"#722F37", team:"The Vintners",     curve:[2, 2, 1, 0, 0, 0, 0, 0, 2, 3, 3, 3], temp:"warm",    tone:"dark",  qualifies:"burgundy, wine, maroon, oxblood, merlot, garnet" },
   { label:"Plum",     hex:"#5B3A6B", team:"The Twilight",     curve:[3, 3, 2, 1, 0, 0, 0, 0, 0, 1, 2, 3], temp:"cool",    tone:"dark",  qualifies:"plum, eggplant, aubergine, mulberry, damson, fig" },
+  { label:"Pink",     hex:"#E88AA0", team:"The Rose Garden",  curve:[0, 1, 2, 3, 3, 2, 2, 2, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"blush, rose, magenta, raspberry, petal, dusty rose" },
 ];
 const byLabel = l => PALETTE.find(c => c.label === l);
 
@@ -402,7 +403,7 @@ function weightOn(c, d) {
 const THEME_WEEKS = [
   { name:"Jewel Tone Week",  emoji:"💎", anchor:[1,21],  colors:["Purple","Green","Blue","Burgundy","Plum"], note:"Deep and saturated — emerald, sapphire, garnet, amethyst" },
   { name:"Neutrals Week",    emoji:"🪨", anchor:[3,11],  colors:["Grey","Brown","White","Black"],           note:"Calm and quiet — let texture do the talking" },
-  { name:"Fresh Start Week", emoji:"🌱", anchor:[5,6],   colors:["Sage","Green","Yellow","White","Teal"],   note:"Spring on your sleeve — light, bright, awake" },
+  { name:"Fresh Start Week", emoji:"🌱", anchor:[5,6],   colors:["Sage","Green","Yellow","White","Teal","Pink"], note:"Spring on your sleeve — light, bright, awake" },
   { name:"Summer Sky Week",  emoji:"🌤️", anchor:[7,15],  colors:["Blue","White","Yellow","Teal","Coral"],   note:"Sky, cloud, sun, sea — nothing heavier" },
   { name:"Earth Tone Week",  emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Burgundy","Grey"],        note:"Harvest colors — warm, grounded, layered" },
   { name:"Monochrome Week",  emoji:"◐",  anchor:[11,11], colors:["Black","Grey","White"],                   note:"One color head to toe — any shade, all the way down" },
@@ -530,22 +531,21 @@ function setLocationByGPS() {
 function clearLocation() { localStorage.removeItem(LOC_KEY); localStorage.removeItem(WX_KEY); renderAll(); }
 
 // ---------------------------------------------------------------
-//  Rare specials: Pink (any time), Flannel (cold season). Own salts, independent rolls.
+//  Flannel — the one special: a texture, not a color, and a cold-season thing.
+//  Rolled independently, ~1 in 4 days Oct–Mar. Orange lives only in Halloween week.
 // ---------------------------------------------------------------
-const PINK    = { label:"Pink",    hex:"#E88AA0", team:"The Rose Garden", qualifies:"blush, rose, magenta, raspberry, petal, mauve" };
 const FLANNEL = { label:"Flannel", hex:"#8B3A2E", team:"The Lumber Yard", qualifies:"any flannel — red, brown, black, white, plaid, whatever you've got" };
 const ORANGE  = { label:"Orange",  hex:"#E0822E", team:"The Pumpkin Patch", qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" };
 const FLANNEL_MONTHS = [10, 11, 12, 1, 2, 3];
-const FLANNEL_ODDS = 4, PINK_ODDS = 20;
+const FLANNEL_ODDS = 4;
 const daySeed = d => d.getFullYear() * 1000 + Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
 const isFlannelDay = d => FLANNEL_MONTHS.includes(d.getMonth() + 1) && hash32(daySeed(d) ^ 0x5EED) % FLANNEL_ODDS === 0;
-const isPinkDay    = d => hash32(daySeed(d) ^ 0x9D1E) % PINK_ODDS === 0;
 
 // ---------------------------------------------------------------
 //  Holiday overrides — these dates just win.
 // ---------------------------------------------------------------
 const HOLIDAYS = [
-  { name:"Valentine's Day",   emoji:"🌹", color:PINK,               when:[2,14],  note:"Pink or red, your call" },
+  { name:"Valentine's Day",   emoji:"🌹", color:byLabel("Pink"),    when:[2,14],  note:"Pink or red, your call" },
   { name:"St. Patrick's Day", emoji:"☘️", color:byLabel("Green"),   when:[3,17],  note:"Green or get pinched" },
   { name:"Independence Day",  emoji:"🎆", color:byLabel("Red"),     when:[7,4],   note:"Red, white & blue — any of the three" },
   { name:"Halloween Week",    emoji:"🎃", color:ORANGE,             range:{from:[10,26], to:[10,31]}, note:"The one week orange is allowed" },
@@ -625,16 +625,13 @@ function colorForDate(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dow = d.getDay();
   const moon = getMoon(d), season = seasonFor(d), theme = themeWeekFor(d), wx = weatherFor(d);
-  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isPink:false, isFlannel:false, holiday:null };
+  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isFlannel:false, holiday:null };
   const pick = (c, extra) => ({ ...base, ...extra, shade:{name:c.label, hex:c.hex}, team:c.team, family:{label:c.label, qualifies:c.qualifies} });
 
   const hol = holidayFor(d);
   if (hol) return pick(hol.color, { holiday:hol });
 
-  if (!theme) {
-    if (isFlannelDay(d)) return pick(FLANNEL, { isFlannel:true });
-    if (isPinkDay(d))    return pick(PINK,    { isPink:true });
-  }
+  if (!theme && isFlannelDay(d)) return pick(FLANNEL, { isFlannel:true });
 
   let c = pickColor(d, wx);
   // No two days in a row on the same color. Compare to yesterday's *final* color and
@@ -642,7 +639,7 @@ function colorForDate(date) {
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
   if (!themeWeekFor(prev) === !theme) {
     const pr = colorForDate(prev);
-    if (!pr.holiday && !pr.isFlannel && !pr.isPink && pr.shade.name === c.label) {
+    if (!pr.holiday && !pr.isFlannel && pr.shade.name === c.label) {
       const active = [...new Set(weightedFor(d, wx))];
       c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
     }
@@ -691,7 +688,7 @@ function renderHero(date) {
   el("swTeam").textContent = r.team || "";
   el("swTag").textContent = r.holiday ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
     : r.dayName + " · " + r.season.emoji + " " + r.season.name + " · " + r.moon.emoji + " " + r.moon.name
-      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day" : r.isPink ? " — Pink Day" : r.weekend ? " — off-duty" : "");
+      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day" : r.weekend ? " — off-duty" : "");
 
   // Theme-week banner — during the week, and the week before as a heads-up
   const banner = el("themeBanner");
@@ -727,11 +724,10 @@ function renderHero(date) {
     : loc
       ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast now…" : "Tomorrow's forecast locks after 6pm — check back tonight." }
       : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Set a location</a> to let the forecast nudge the odds. Totally optional." };
-  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : r.wx ? "season × weather" : "season";
+  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.wx ? "season × weather" : "season";
   const blendVoice = r.holiday ? r.holiday.note
     : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
     : r.isFlannel ? "Any flannel counts — the color is yours. Today you're " + r.team + "."
-    : r.isPink ? "A rare one — the dice rolled pink. Today you're " + r.team + "."
     : (r.wx ? "The season sets the odds, the sky tilts them. " : "The season sets the odds. ") + "Today you're " + r.team + ".";
   el("why").innerHTML = [
     { icon: r.season.emoji, label:"Season",  value: r.season.name + " · " + hh + "h " + String(mm).padStart(2,"0") + "m light", voice: r.season.voice },
