@@ -70,16 +70,26 @@
     padding: 16px 20px 12px;
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
   }
-  header .brand {
-    font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
-    color: var(--gold);
-  }
-  header h1 {
+  /* Logo: roundel + wordmark. The wordmark is the biggest type on the page after the hero. */
+  .logo { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .logo .mark { width: 52px; height: 52px; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(34,48,31,0.22)); }
+  .wordmark {
     font-family: "Playfair Display", Georgia, serif;
-    font-size: 24px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.05;
-    margin-top: 2px; color: var(--green);
+    font-size: 40px; font-weight: 800; letter-spacing: 1.5px; line-height: 1;
+    color: var(--green); text-transform: uppercase;
+    /* gold hairline under the name — the "ornament" made structural */
+    background: linear-gradient(var(--gold), var(--gold)) no-repeat 0 100% / 100% 2px;
+    padding-bottom: 3px; display: inline-block;
   }
-  header .sub { font-size: 11.5px; color: var(--muted); font-style: italic; margin-top: 1px; }
+  .brand-region { font-family: "Inter", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: none; color: var(--muted); vertical-align: 6px; margin-left: 6px; }
+  .tagline-hdr { font-size: 11.5px; color: var(--muted); margin-top: 6px; letter-spacing: 0.2px; }
+  .tagline-hdr .sep { color: var(--gold); margin: 0 4px; }
+  @media (max-width: 520px) {
+    .wordmark { font-size: 32px; }
+    .logo .mark { width: 44px; height: 44px; }
+    .tagline-hdr .more { display: none; } /* drop the long half on narrow screens */
+    .tagline-hdr { font-size: 11px; }
+  }
   .today-btn {
     font-size: 12px; font-weight: 600; color: var(--green); letter-spacing: 0.3px;
     background: transparent; border: 1px solid var(--line); border-radius: 999px;
@@ -118,10 +128,9 @@
   .link-btn:hover { color: var(--gold); }
   .loc-msg { font-size: 12px; color: var(--gold); min-height: 16px; margin-top: 8px; }
   .loc-current .muted { color: var(--muted); font-weight: 400; }
-  .brand-region { color: var(--muted); font-weight: 500; letter-spacing: 0.3px; }
   .welcome-card { text-align: center; padding-top: 22px; }
-  .welcome-card .ornament { color: var(--gold); font-size: 11px; letter-spacing: 6px; margin-bottom: 6px; }
-  .welcome-card h3 { font-family: "Playfair Display", Georgia, serif; font-size: 30px; color: var(--green); letter-spacing: 1px; }
+  .welcome-card .mark-lg { width: 72px; height: 72px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(34,48,31,0.25)); }
+  .welcome-card .wordmark { font-size: 34px; margin: 0 auto; }
   .welcome-lead { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: 15px; color: var(--ink); margin: 6px 0 12px; }
   .welcome-joined:empty { display: none; }
   .welcome-joined { color: var(--green); font-weight: 600; }
@@ -306,18 +315,41 @@
   .mcell.themed { border-style: double; border-width: 3px; padding: 1px; }
 
   footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 20px; }
-  footer .brand { font-family: "Playfair Display", Georgia, serif; font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 1px; }
+  footer .brand { font-family: "Playfair Display", Georgia, serif; font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin: 6px 0 2px; }
   footer .fine { font-size: 10.5px; letter-spacing: 1px; }
-  footer .ornament { color: var(--gold); font-size: 12px; margin-bottom: 4px; letter-spacing: 6px; }
+  footer .mark-sm { width: 30px; height: 30px; opacity: 0.9; }
 </style>
 </head>
 <body>
 
+<!-- Logo: a stained-glass roundel (same motif as the app icon), defined once and reused -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="toga-mark" viewBox="0 0 64 64">
+      <!-- four panes of the core palette, leaded; a gold ring; a serif T cut from the centre -->
+      <circle cx="32" cy="32" r="30" fill="#22301f"/>
+      <path d="M32 32 L32 4 A28 28 0 0 1 60 32 Z" fill="#C4453A"/>
+      <path d="M32 32 L60 32 A28 28 0 0 1 32 60 Z" fill="#3A6FA8"/>
+      <path d="M32 32 L32 60 A28 28 0 0 1 4 32 Z" fill="#E3B23C"/>
+      <path d="M32 32 L4 32 A28 28 0 0 1 32 4 Z" fill="#4E8A5A"/>
+      <circle cx="32" cy="32" r="28" fill="none" stroke="#22301f" stroke-width="2"/>
+      <path d="M32 4 V60 M4 32 H60" stroke="#22301f" stroke-width="2"/>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="#b3862f" stroke-width="2.5"/>
+      <!-- light behind the glass -->
+      <circle cx="24" cy="22" r="14" fill="#fff" opacity="0.16"/>
+      <!-- the T -->
+      <path d="M18 19 H46 V25 H35.5 V47 H28.5 V25 H18 Z" fill="#f7f3ea" stroke="#22301f" stroke-width="1.6" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
 <header>
-  <div>
-    <div class="brand">Toga<span class="brand-region" id="brandRegion"></span></div>
-    <h1>Optional Dress Code</h1>
-    <div class="sub">one color a day · wear it if it's easy</div>
+  <div class="logo">
+    <svg class="mark" aria-hidden="true"><use href="#toga-mark"/></svg>
+    <div>
+      <h1 class="wordmark">Toga<span class="brand-region" id="brandRegion"></span></h1>
+      <div class="tagline-hdr">Optional Dress Code<span class="more"> <span class="sep">·</span> one color a day, wear it if it's easy</span></div>
+    </div>
   </div>
   <div class="hdr-actions">
     <button class="today-btn icon-btn" id="settingsBtn" aria-label="Settings" title="Location & weather">⚙</button>
@@ -370,7 +402,7 @@
   </div>
 
   <footer>
-    <div class="ornament">✦ ✦ ✦</div>
+    <svg class="mark-sm" aria-hidden="true"><use href="#toga-mark"/></svg>
     <div class="brand">Toga</div>
     <div class="fine">In Rome, the color of your toga said who you were. Toga just makes the morning easier — every day, always optional. · ❄️ 🌱 ☀️ 🍂 ☾</div>
   </footer>
@@ -402,8 +434,8 @@
 <!-- Welcome: once, then never again -->
 <div class="sheet" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="sheet-card welcome-card">
-    <div class="ornament">✦ ✦ ✦</div>
-    <h3 id="welcomeTitle">Toga</h3>
+    <svg class="mark-lg" aria-hidden="true"><use href="#toga-mark"/></svg>
+    <h3 id="welcomeTitle" class="wordmark">Toga</h3>
     <p class="welcome-lead">One color a day, chosen by the season.</p>
     <p class="sheet-p">If something in your closet is close, wear it. If not, ignore it. That's the whole thing — one less decision in the morning, and everyone using Toga is quietly matching.</p>
     <p class="sheet-p welcome-joined" id="welcomeJoined"></p>
