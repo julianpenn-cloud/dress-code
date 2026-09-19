@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Toga · a color a day, chosen by the sky</title>
-<meta name="description" content="Toga picks one simple color each workday from the sun, moon, and planets — so your whole team coordinates without a group chat.">
+<title>Toga · a color a day, chosen by the season</title>
+<meta name="description" content="Toga picks one simple color each workday from the season and the weather — so your whole team coordinates without a group chat.">
 <meta property="og:title" content="Toga">
-<meta property="og:description" content="A color a day, chosen by the sky. Coordinate outfits with your team — no group chat required.">
+<meta property="og:description" content="A color a day, chosen by the season. Coordinate outfits with your team — no group chat required.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,6 +72,37 @@
     transition: all 0.15s ease; flex-shrink: 0;
   }
   .today-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .hdr-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .icon-btn { padding: 8px 12px; font-size: 14px; line-height: 1; }
+
+  /* ------------------------------------------------ Settings sheet */
+  .sheet {
+    position: fixed; inset: 0; z-index: 50; display: none;
+    background: rgba(34, 48, 31, 0.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    align-items: flex-end; justify-content: center; padding: 16px;
+  }
+  .sheet.open { display: flex; }
+  @media (min-width: 600px) { .sheet { align-items: center; } }
+  .sheet-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: var(--shadow); padding: 18px 20px 16px; width: 100%; max-width: 440px;
+  }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sheet-head h3 { font-family: "Playfair Display", Georgia, serif; font-size: 20px; color: var(--green); }
+  .sheet-p { font-size: 13px; color: var(--ink); line-height: 1.5; margin-bottom: 12px; }
+  .sheet-fine { font-size: 10.5px; color: var(--muted); margin-top: 12px; }
+  .loc-current { font-size: 12.5px; color: var(--muted); font-style: italic; margin-bottom: 10px; }
+  .loc-row { display: flex; gap: 8px; align-items: center; }
+  .loc-row input {
+    flex: 1; font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--paper); color: var(--ink); outline: none;
+  }
+  .loc-row input:focus { border-color: var(--gold); }
+  .loc-alt { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .link-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: var(--green); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .link-btn:hover { color: var(--gold); }
+  .loc-msg { font-size: 12px; color: var(--gold); min-height: 16px; margin-top: 8px; }
+  .why-chip .voice a { color: var(--green); }
 
   /* ------------------------------------------------ Two-column layout */
   .main { display: grid; grid-template-columns: 1fr; gap: 14px; }
@@ -236,9 +267,12 @@
   <div>
     <div class="brand">Toga</div>
     <h1>Optional Dress Code</h1>
-    <div class="sub">a color a day, chosen by the sky</div>
+    <div class="sub">a color a day, chosen by the season</div>
   </div>
-  <button class="today-btn" id="todayBtn">Today</button>
+  <div class="hdr-actions">
+    <button class="today-btn icon-btn" id="settingsBtn" aria-label="Settings" title="Location & weather">⚙</button>
+    <button class="today-btn" id="todayBtn">Today</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -285,46 +319,93 @@
   <footer>
     <div class="ornament">✦ ✦ ✦</div>
     <div class="brand">Toga</div>
-    <div class="fine">In Rome, the color of your toga said who you were. Now the sky decides. · ☾ ☉ ♀ ♂ ♃ ☿ ♄</div>
+    <div class="fine">In Rome, the color of your toga said who you were. Now the season decides. · ❄️ 🌱 ☀️ 🍂 ☾</div>
   </footer>
 </div>
 
+<!-- Settings sheet: location for the weather mood -->
+<div class="sheet" id="settings" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <h3 id="sheetTitle">Weather</h3>
+      <button class="nav-btn" id="settingsClose" aria-label="Close">×</button>
+    </div>
+    <p class="sheet-p">Toga can let tomorrow's forecast gently tilt the odds — sunny days lean warm, grey days lean cool. The forecast <b>locks each evening after 6pm</b>, so what you see tonight is what you wear tomorrow. No last-minute switches.</p>
+    <div class="loc-current" id="locCurrent"></div>
+    <div class="loc-row">
+      <input id="locInput" type="text" placeholder="City, e.g. Minneapolis" autocomplete="off">
+      <button class="today-btn" id="locSave">Save</button>
+    </div>
+    <div class="loc-row loc-alt">
+      <button class="link-btn" id="locGPS">Use my location</button>
+      <span class="dot">·</span>
+      <button class="link-btn" id="locClear">Turn weather off</button>
+    </div>
+    <div class="loc-msg" id="locMsg"></div>
+    <p class="sheet-fine">Stored only on this device. Forecast by Open-Meteo.</p>
+  </div>
+</div>
+
 <script>
+// ===============================================================
+//  TOGA — a color a day, chosen by the season (and, if you like, the weather)
+//
+//  How a day gets its color, in order:
+//    1. Weekend? free day.
+//    2. Holiday? that color wins.
+//    3. Theme week? pick from the theme's colors only.
+//    4. Flannel / Pink? rare rolls (cold season for flannel).
+//    5. Otherwise: seasonal drift × weather mood → weighted table → hashed pick.
+//  Deterministic from the date (+ locked forecast), so every phone agrees.
+// ===============================================================
+
 // ---------------------------------------------------------------
-//  Palette — basic colors, picked from the sky each day (wear any shade you own)
-//  `weight` = how often it comes up, tuned to what the closets actually hold.
-//  Deep stock (brown/red/black/white/blue/grey) = 3, thin (green) = 2, rare (purple) = 1.
-//  `season` (optional) = months the color is active; omitted = year-round.
-//  `team` = the day's team name, for saying out loud.
+//  Palette. `curve` = how much a color "wants" each month, Jan..Dec (0 = off).
+//  Weights drift smoothly between months, so the palette breathes with the year.
+//  temp: warm/cool/neutral · tone: light/dark/mid (for the weather mood).
 // ---------------------------------------------------------------
 const PALETTE = [
-  { label: "Purple", hex: "#8E63C4", weight: 1, team: "The Senate",       qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
-  { label: "Red",    hex: "#C4453A", weight: 3, team: "The Legion",       qualifies: "maroon, burgundy, brick, coral, rust, wine" },
-  { label: "Blue",   hex: "#3A6FA8", weight: 3, team: "The Tide",         qualifies: "navy, sky, steel, denim, powder, teal" },
-  { label: "Green",  hex: "#4E8A5A", weight: 2, team: "The Laurel",       qualifies: "olive, forest, sage, emerald, moss, pine" },
-  { label: "Brown",  hex: "#7A5230", weight: 3, team: "The Terra Firma",  qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
-  { label: "Grey",   hex: "#8A8D8F", weight: 3, team: "The Stoics",       qualifies: "charcoal, slate, silver, heather, stone, dove" },
-  { label: "White",  hex: "#F1EFEA", weight: 3, team: "The Marble Hall",  qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
-  { label: "Black",  hex: "#2E2E2E", weight: 3, team: "The Night Watch",  qualifies: "charcoal, graphite, slate, dark grey, onyx" },
-  //  Yellow: spring & summer only (Mar–Aug). Thin weight — the closets are still catching up. ☀️
-  { label: "Yellow", hex: "#E3B23C", weight: 2, team: "The Sol Invictus", season: [3,4,5,6,7,8], qualifies: "mustard, gold, butter, lemon, marigold, honey" },
+  //                                                          J  F  M  A  M  J  J  A  S  O  N  D
+  { label:"White",    hex:"#F1EFEA", team:"The Marble Hall",  curve:[4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 3, 4], temp:"neutral", tone:"light", qualifies:"cream, ivory, ecru, off-white, light grey" },
+  { label:"Grey",     hex:"#8A8D8F", team:"The Stoics",       curve:[4, 4, 3, 2, 2, 1, 1, 1, 2, 3, 4, 4], temp:"cool",    tone:"mid",   qualifies:"charcoal, slate, silver, heather, stone, dove" },
+  { label:"Black",    hex:"#2E2E2E", team:"The Night Watch",  curve:[4, 3, 3, 2, 1, 1, 1, 1, 2, 3, 3, 4], temp:"neutral", tone:"dark",  qualifies:"charcoal, graphite, onyx, dark grey" },
+  { label:"Brown",    hex:"#7A5230", team:"The Terra Firma",  curve:[3, 3, 2, 1, 1, 1, 1, 1, 3, 4, 4, 3], temp:"warm",    tone:"dark",  qualifies:"tan, camel, khaki, chocolate, taupe, chestnut" },
+  { label:"Blue",     hex:"#3A6FA8", team:"The Tide",         curve:[2, 2, 3, 3, 3, 4, 4, 4, 3, 2, 2, 2], temp:"cool",    tone:"mid",   qualifies:"navy, sky, steel, denim, powder, cobalt" },
+  { label:"Red",      hex:"#C4453A", team:"The Legion",       curve:[2, 3, 2, 2, 2, 3, 3, 3, 3, 3, 2, 3], temp:"warm",    tone:"mid",   qualifies:"brick, scarlet, cherry, crimson, tomato" },
+  { label:"Green",    hex:"#4E8A5A", team:"The Laurel",       curve:[1, 1, 2, 3, 4, 3, 3, 3, 3, 3, 2, 2], temp:"cool",    tone:"mid",   qualifies:"olive, forest, emerald, moss, pine, kelly" },
+  { label:"Purple",   hex:"#8E63C4", team:"The Senate",       curve:[2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2], temp:"cool",    tone:"mid",   qualifies:"lilac, lavender, orchid, mauve, violet, grape" },
+  { label:"Yellow",   hex:"#E3B23C", team:"The Sol Invictus", curve:[0, 0, 1, 2, 3, 3, 3, 3, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"mustard, gold, butter, lemon, marigold, honey" },
+  // --- the new ones: seasonal by nature, so no single day is crowded ---
+  { label:"Teal",     hex:"#2E8B8B", team:"The Harbor",       curve:[0, 0, 1, 2, 3, 3, 3, 3, 2, 1, 0, 0], temp:"cool",    tone:"mid",   qualifies:"teal, turquoise, aqua, seafoam, peacock, lagoon" },
+  { label:"Coral",    hex:"#E07A5F", team:"The Reef",         curve:[0, 0, 0, 1, 2, 3, 3, 3, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"coral, salmon, peach, apricot, melon, terracotta" },
+  { label:"Sage",     hex:"#9CAF88", team:"The Herb Garden",  curve:[0, 0, 2, 3, 3, 2, 1, 1, 1, 0, 0, 0], temp:"cool",    tone:"light", qualifies:"sage, eucalyptus, celadon, mint, pistachio, moss" },
+  { label:"Burgundy", hex:"#722F37", team:"The Vintners",     curve:[2, 2, 1, 0, 0, 0, 0, 0, 2, 3, 3, 3], temp:"warm",    tone:"dark",  qualifies:"burgundy, wine, maroon, oxblood, merlot, garnet" },
+  { label:"Plum",     hex:"#5B3A6B", team:"The Twilight",     curve:[3, 3, 2, 1, 0, 0, 0, 0, 0, 1, 2, 3], temp:"cool",    tone:"dark",  qualifies:"plum, eggplant, aubergine, mulberry, damson, fig" },
 ];
 const byLabel = l => PALETTE.find(c => c.label === l);
 
+//  A color's weight on a given date: linear blend between this month's and next month's
+//  curve value by how far through the month we are. Smooth drift, no hard seasonal cliffs.
+function weightOn(c, d) {
+  const m = d.getMonth();
+  const days = new Date(d.getFullYear(), m + 1, 0).getDate();
+  const t = (d.getDate() - 1) / days;
+  return c.curve[m] * (1 - t) + c.curve[(m + 1) % 12] * t;
+}
+
 // ---------------------------------------------------------------
-//  Themed weeks — a handful a year. That week the sky picks only from the
-//  theme's colors. Each is anchored to a date ([month, day]); whichever
-//  Mon–Fri week contains that date is the theme week, so it works every year.
+//  Themed weeks — a handful a year. That week the pick is from the theme's
+//  colors only. Anchored to a date; whichever Mon–Fri week contains it is the
+//  theme week, so it works every year.
 // ---------------------------------------------------------------
 const THEME_WEEKS = [
-  { name:"Jewel Tone Week",   emoji:"💎", anchor:[1,21],  colors:["Purple","Green","Blue","Red"],  note:"Deep and saturated — emerald, sapphire, ruby, amethyst" },
-  { name:"Neutrals Week",     emoji:"🪨", anchor:[3,11],  colors:["Grey","Brown","White","Black"], note:"Calm and quiet — let texture do the talking" },
-  { name:"Fresh Start Week",  emoji:"🌱", anchor:[5,6],   colors:["Green","Yellow","White","Blue"], note:"Spring on your sleeve — light, bright, awake" },
-  { name:"Summer Sky Week",   emoji:"🌤️", anchor:[7,15],  colors:["Blue","White","Yellow"],       note:"Sky, cloud, sun — nothing heavier" },
-  { name:"Earth Tone Week",   emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Red","Grey"],   note:"Harvest colors — warm, grounded, layered" },
-  { name:"Monochrome Week",   emoji:"◐",  anchor:[11,11], colors:["Black","Grey","White"],        note:"One color head to toe — any shade, all the way down" },
+  { name:"Jewel Tone Week",  emoji:"💎", anchor:[1,21],  colors:["Purple","Green","Blue","Burgundy","Plum"], note:"Deep and saturated — emerald, sapphire, garnet, amethyst" },
+  { name:"Neutrals Week",    emoji:"🪨", anchor:[3,11],  colors:["Grey","Brown","White","Black"],           note:"Calm and quiet — let texture do the talking" },
+  { name:"Fresh Start Week", emoji:"🌱", anchor:[5,6],   colors:["Sage","Green","Yellow","White","Teal"],   note:"Spring on your sleeve — light, bright, awake" },
+  { name:"Summer Sky Week",  emoji:"🌤️", anchor:[7,15],  colors:["Blue","White","Yellow","Teal","Coral"],   note:"Sky, cloud, sun, sea — nothing heavier" },
+  { name:"Earth Tone Week",  emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Burgundy","Grey"],        note:"Harvest colors — warm, grounded, layered" },
+  { name:"Monochrome Week",  emoji:"◐",  anchor:[11,11], colors:["Black","Grey","White"],                   note:"One color head to toe — any shade, all the way down" },
 ];
-//  Monday of the week containing d (Mon–Fri weeks; weekends belong to the week before)
 function mondayOf(d) {
   const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
@@ -336,89 +417,158 @@ function themeWeekFor(d) {
 }
 
 // ---------------------------------------------------------------
-//  Seasons — drive the stained-glass tint of the whole page
+//  Seasons — eight named stretches (so "late autumn" ≠ "early autumn"),
+//  plus the four coarse seasons that drive the stained-glass tint.
 // ---------------------------------------------------------------
-function seasonOf(d) {
+const SEASONS = [ // [startMonth, startDay, name, emoji, voice]
+  [12,21, "Deep Winter",   "❄️", "The quiet stretch. Layers, wool, and whatever's warmest."],
+  [ 2, 5, "Late Winter",   "🌬️", "Light's coming back. Not warm yet — but coming."],
+  [ 3,20, "Early Spring",  "🌱", "Mud season. The first green anything counts as a win."],
+  [ 5, 1, "Late Spring",   "🌷", "Everything's blooming at once. Lean bright."],
+  [ 6,21, "High Summer",   "☀️", "Long light, warm nights. Keep it easy and breathable."],
+  [ 8, 8, "Late Summer",   "🌾", "Golden hour season. Warm tones, slower pace."],
+  [ 9,22, "Early Autumn",  "🍂", "Crisp mornings, color in the trees. Layer up."],
+  [11, 5, "Late Autumn",   "🍁", "Leaves down, sky low. Deep, grounded colors."],
+];
+function seasonFor(d) {
+  const y = d.getFullYear(), t = d.getTime();
+  // Deep Winter wraps the year: Dec 21 → Feb 4
+  let cur = SEASONS[0];
+  for (const s of SEASONS) if (new Date(y, s[0] - 1, s[1]).getTime() <= t) cur = s;
+  return { name: cur[2], emoji: cur[3], voice: cur[4] };
+}
+function seasonOf(d) { // coarse, for CSS tint
   const m = d.getMonth() + 1;
   return m <= 2 || m === 12 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
 }
-//  Colors in play for a given date, expanded by weight. A theme week narrows the
-//  field to its colors (equal weight); otherwise seasonal colors only in their months.
-function weightedFor(d) {
-  const theme = themeWeekFor(d);
-  if (theme) return theme.colors.map(byLabel);
-  const m = d.getMonth() + 1;
-  return PALETTE.filter(c => !c.season || c.season.includes(m)).flatMap(c => Array(c.weight).fill(c));
+//  Daylight hours — a small, real, nature fact for the Season chip.
+//  Uses the stored latitude (default 45°N) and the standard declination formula.
+function daylightHours(d, lat) {
+  const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  const decl = 23.44 * Math.sin((2 * Math.PI / 365) * (doy - 81)) * Math.PI / 180;
+  const phi = lat * Math.PI / 180;
+  const x = Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(decl)));
+  return 24 * Math.acos(x) / Math.PI;
 }
-
-//  Pink is a rare treat, not part of the rotation — see isPinkDay()
-const PINK = { label: "Pink", hex: "#E88AA0", team: "The Rose Garden", qualifies: "blush, rose, magenta, raspberry, petal, mauve" };
-
-//  Flannel — any flannel, any color, all cold season (Oct 1 – Mar 31). 🍂
-//  Not tied to a weekday: the sky rolls it, ~1 in 4 workdays, landing anywhere in the week.
-const FLANNEL = { label: "Flannel", hex: "#8B3A2E", team: "The Lumber Yard", qualifies: "any flannel — red, brown, black, white, plaid, whatever you've got" };
-const FLANNEL_MONTHS = [10, 11, 12, 1, 2, 3];
-const FLANNEL_ODDS = 4; // 1 in N
-function isFlannelDay(d, sign, moon) {
-  if (!FLANNEL_MONTHS.includes(d.getMonth() + 1)) return false;
-  const x = SIGNS.indexOf(sign) * 100000 + d.getDay() * 10000 + Math.round(moon.frac * 1000);
-  return hash32(x ^ 0x5EED) % FLANNEL_ODDS === 0; // separate salt so it's independent of the color roll
-}
-
-//  Orange lives only here — the one week a year it's allowed 🎃
-const ORANGE = { label: "Orange", hex: "#E0822E", team: "The Pumpkin Patch", qualifies: "burnt orange, rust, pumpkin, amber, copper, peach" };
 
 // ---------------------------------------------------------------
-//  Holiday overrides — these dates just win, no matter what the sky says
-//  Fixed dates: [month, day]. Ranges: { from:[m,d], to:[m,d] }.
-//  Floating (e.g. Thanksgiving) computed in holidayFor().
+//  Weather mood — optional. Locked the evening before, stored on this phone,
+//  applied as a gentle nudge to the weights. Never a dependency: if there's no
+//  forecast, the pick is pure seasonal drift.
+//  Moods: sunny · cloudy · rain · snow · null. Source: Open-Meteo (free, no key).
+// ---------------------------------------------------------------
+const WX_KEY = "toga.wx";       // { ymd, mood, tempC, code, lat, lon, place }
+const LOC_KEY = "toga.loc";     // { lat, lon, place }
+const WX_NUDGE = 1.6;           // multiplier on favored colors (≈20% of the mix)
+
+function moodFromCode(code) {   // WMO weather codes
+  if (code === 0 || code === 1) return "sunny";
+  if (code === 2 || code === 3 || code === 45 || code === 48) return "cloudy";
+  if (code >= 71 && code <= 77 || code === 85 || code === 86) return "snow";
+  if (code >= 51) return "rain";
+  return "cloudy";
+}
+const MOOD = {
+  sunny:  { emoji:"☀️", label:"Sunny",    favor: c => c.temp === "warm" || c.tone === "light", voice:"Bright out. The warm, light colors get a nudge." },
+  cloudy: { emoji:"☁️", label:"Overcast", favor: c => c.temp === "cool" && c.tone !== "light",  voice:"Low sky. Cooler, deeper colors get a nudge." },
+  rain:   { emoji:"🌧️", label:"Rain",     favor: c => ["Blue","Teal","Grey","Plum"].includes(c.label), voice:"Wet day. Blues and greys lean in." },
+  snow:   { emoji:"❄️", label:"Snow",     favor: c => c.tone === "light" || c.label === "Grey", voice:"Snow day. Whites and greys, naturally." },
+};
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function getLoc() { return loadJSON(LOC_KEY); }
+
+//  The locked forecast for a date, if we have one.
+function weatherFor(d) {
+  const w = loadJSON(WX_KEY);
+  return w && w.ymd === ymd(d) ? w : null;
+}
+
+//  The lock rule, kept strict so there are never same-morning surprises:
+//  a forecast only counts if it was locked the evening before (after 6pm) for the
+//  next workday. Mornings never fetch. If nothing was locked, the day runs on
+//  pure seasonal drift. Silent on any failure.
+async function refreshWeather() {
+  const loc = getLoc();
+  if (!loc) return;
+  const now = new Date();
+  if (now.getHours() < 18) return;                 // evenings only
+  const target = nextWorkday(now);                 // Fri/Sat/Sun evenings all lock Monday
+  const have = loadJSON(WX_KEY);
+  if (have && have.ymd === ymd(target)) return;    // already locked
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=7`;
+    const j = await (await fetch(url)).json();
+    const i = j.daily.time.indexOf(ymd(target));
+    if (i < 0) return;
+    const code = j.daily.weather_code[i];
+    localStorage.setItem(WX_KEY, JSON.stringify({ ymd: ymd(target), mood: moodFromCode(code), tempC: j.daily.temperature_2m_max[i], code, ...loc }));
+    renderAll();
+  } catch { /* no weather tonight — seasonal drift carries it */ }
+}
+
+//  Location: a one-tap setting. Geocodes a city name via Open-Meteo, or uses the browser's GPS.
+async function setLocationByName(q) {
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
+  const j = await res.json();
+  if (!j.results || !j.results.length) throw new Error("not found");
+  const r = j.results[0];
+  const place = r.name + (r.admin1 ? ", " + r.admin1 : "") + (r.country_code ? " " + r.country_code : "");
+  localStorage.setItem(LOC_KEY, JSON.stringify({ lat: r.latitude, lon: r.longitude, place }));
+  localStorage.removeItem(WX_KEY);
+  await refreshWeather();
+  renderAll();
+}
+function setLocationByGPS() {
+  return new Promise((ok, no) => navigator.geolocation.getCurrentPosition(async p => {
+    localStorage.setItem(LOC_KEY, JSON.stringify({ lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3), place: "Your location" }));
+    localStorage.removeItem(WX_KEY);
+    await refreshWeather(); renderAll(); ok();
+  }, no, { timeout: 8000 }));
+}
+function clearLocation() { localStorage.removeItem(LOC_KEY); localStorage.removeItem(WX_KEY); renderAll(); }
+
+// ---------------------------------------------------------------
+//  Rare specials: Pink (any time), Flannel (cold season). Own salts, independent rolls.
+// ---------------------------------------------------------------
+const PINK    = { label:"Pink",    hex:"#E88AA0", team:"The Rose Garden", qualifies:"blush, rose, magenta, raspberry, petal, mauve" };
+const FLANNEL = { label:"Flannel", hex:"#8B3A2E", team:"The Lumber Yard", qualifies:"any flannel — red, brown, black, white, plaid, whatever you've got" };
+const ORANGE  = { label:"Orange",  hex:"#E0822E", team:"The Pumpkin Patch", qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" };
+const FLANNEL_MONTHS = [10, 11, 12, 1, 2, 3];
+const FLANNEL_ODDS = 4, PINK_ODDS = 20;
+const daySeed = d => d.getFullYear() * 1000 + Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+const isFlannelDay = d => FLANNEL_MONTHS.includes(d.getMonth() + 1) && hash32(daySeed(d) ^ 0x5EED) % FLANNEL_ODDS === 0;
+const isPinkDay    = d => hash32(daySeed(d) ^ 0x9D1E) % PINK_ODDS === 0;
+
+// ---------------------------------------------------------------
+//  Holiday overrides — these dates just win.
 // ---------------------------------------------------------------
 const HOLIDAYS = [
-  { name:"Valentine's Day",  emoji:"🌹", color:PINK,                                  when:[2,14],  note:"Pink or red, your call" },
-  { name:"St. Patrick's Day",emoji:"☘️", color:PALETTE[3],                            when:[3,17],  note:"Green or get pinched" },
-  { name:"Independence Day", emoji:"🎆", color:PALETTE[1],                            when:[7,4],   note:"Red, white & blue — any of the three" },
-  { name:"Halloween Week",   emoji:"🎃", color:ORANGE,                                range:{from:[10,26], to:[10,31]}, note:"The one week orange is allowed" },
-  { name:"Christmas Week",   emoji:"🎄", color:PALETTE[1],                            range:{from:[12,21], to:[12,24]}, note:"Red one day, green the next" },
-  { name:"New Year's Eve",   emoji:"🥂", color:PALETTE[7],                            when:[12,31], note:"Black tie, or close enough" },
+  { name:"Valentine's Day",   emoji:"🌹", color:PINK,               when:[2,14],  note:"Pink or red, your call" },
+  { name:"St. Patrick's Day", emoji:"☘️", color:byLabel("Green"),   when:[3,17],  note:"Green or get pinched" },
+  { name:"Independence Day",  emoji:"🎆", color:byLabel("Red"),     when:[7,4],   note:"Red, white & blue — any of the three" },
+  { name:"Halloween Week",    emoji:"🎃", color:ORANGE,             range:{from:[10,26], to:[10,31]}, note:"The one week orange is allowed" },
+  { name:"Christmas Week",    emoji:"🎄", color:byLabel("Red"),     range:{from:[12,21], to:[12,24]}, note:"Red one day, green the next" },
+  { name:"New Year's Eve",    emoji:"🥂", color:byLabel("Black"),   when:[12,31], note:"Black tie, or close enough" },
 ];
-
-//  Alternate red/green within Christmas week for variety
-function christmasColor(d) { return (d.getDate() % 2 === 0) ? PALETTE[3] : PALETTE[1]; }
-
 function holidayFor(d) {
   const m = d.getMonth() + 1, day = d.getDate();
   for (const h of HOLIDAYS) {
-    if (h.when && h.when[0] === m && h.when[1] === day) {
-      return h;
-    }
+    if (h.when && h.when[0] === m && h.when[1] === day) return h;
     if (h.range) {
       const [fm, fd] = h.range.from, [tm, td] = h.range.to;
-      const after = (m > fm) || (m === fm && day >= fd);
-      const before = (m < tm) || (m === tm && day <= td);
-      if (after && before) {
-        if (h.name === "Christmas Week") return { ...h, color: christmasColor(d) };
-        return h;
-      }
+      if ((m > fm || (m === fm && day >= fd)) && (m < tm || (m === tm && day <= td)))
+        return h.name === "Christmas Week" ? { ...h, color: byLabel(day % 2 ? "Red" : "Green") } : h;
     }
   }
-  // Thanksgiving: 4th Thursday of November -> brown
-  if (m === 11 && d.getDay() === 4) {
-    const nth = Math.ceil(day / 7);
-    if (nth === 4) return { name:"Thanksgiving", emoji:"🦃", color:PALETTE[4], note:"Earthy browns for the feast" };
-  }
+  if (m === 11 && d.getDay() === 4 && Math.ceil(day / 7) === 4)
+    return { name:"Thanksgiving", emoji:"🦃", color:byLabel("Brown"), note:"Earthy browns for the feast" };
   return null;
 }
 
 // ---------------------------------------------------------------
-//  Astro one-liners — give the "why" panel a voice
+//  Moon — kept. Genuinely astronomical, and people like it.
 // ---------------------------------------------------------------
-const PLANET_VOICE = {
-  Moon:    "The Moon rules Mondays — quiet, reflective, a little dreamy.",
-  Mars:    "Mars rules Tuesdays — the warrior planet. Bring some fire.",
-  Mercury: "Mercury rules Wednesdays — the trickster planet, quick and clever.",
-  Jupiter: "Jupiter rules Thursdays — the king. Wear it like you own the place.",
-  Venus:   "Venus rules Fridays — love, beauty, and a well-earned weekend.",
-};
 const MOON_VOICE = {
   "New Moon":        "New moon: fresh starts, quiet confidence.",
   "Waxing Crescent": "Waxing crescent: things are building. So are you.",
@@ -429,165 +579,78 @@ const MOON_VOICE = {
   "Last Quarter":    "Last quarter: let go of what's not working.",
   "Waning Crescent": "Waning crescent: rest up, the cycle turns again soon.",
 };
-const SIGN_VOICE = {
-  Capricorn:"Capricorn season — disciplined, grounded, quietly ambitious.",
-  Aquarius: "Aquarius season — a little unconventional, in the best way.",
-  Pisces:   "Pisces season — dreamy and intuitive.",
-  Aries:    "Aries season — bold, first out the gate.",
-  Taurus:   "Taurus season — comfort, quality, no rush.",
-  Gemini:   "Gemini season — curious and chatty.",
-  Cancer:   "Cancer season — home, heart, and a soft edge.",
-  Leo:      "Leo season — main-character energy.",
-  Virgo:    "Virgo season — precise, polished, understated.",
-  Libra:    "Libra season — balance, beauty, good taste.",
-  Scorpio:  "Scorpio season — deep, intense, magnetic.",
-  Sagittarius:"Sagittarius season — adventurous and optimistic.",
-};
-
-//  Pink Day — rare, sky-rolled, any weekday. ~1 in 20 workdays ≈ once a month.
-//  Own salt so it's independent of the color and flannel rolls.
-const PINK_ODDS = 20;
-function isPinkDay(d, sign, moon) {
-  const x = SIGNS.indexOf(sign) * 100000 + d.getDay() * 10000 + Math.round(moon.frac * 1000);
-  return hash32(x ^ 0x9D1E) % PINK_ODDS === 0;
-}
-
-// ---------------------------------------------------------------
-//  The celestial hash — sun × moon × day pick the color
-//  Combines three real astronomical quantities (the sun's zodiac position,
-//  the moon's continuous phase, and the day's ruling planet) and hashes them
-//  into a palette index. Deterministic (both phones agree) but scatters
-//  like random — no more "shift by one color each week".
-// ---------------------------------------------------------------
-function hash32(x) {
-  x ^= x >>> 16;
-  x = Math.imul(x, 0x7feb352d);
-  x ^= x >>> 15;
-  x = Math.imul(x, 0x846ca68b);
-  x ^= x >>> 16;
-  return x >>> 0;
-}
-
-//  Pick a color for the date from the sky. Returns a PALETTE entry.
-function celestialColor(d, sign, moon) {
-  const signIdx = SIGNS.indexOf(sign);            // 0..11  (sun's annual position)
-  const moonSteps = Math.round(moon.frac * 1000); // 0..1000 (moon's continuous position)
-  const x = signIdx * 100000 + d.getDay() * 10000 + moonSteps;
-  const table = weightedFor(d);
-  return table[hash32(x) % table.length];
-}
-
-// ---------------------------------------------------------------
-//  Planetary day-of-week (the fun "why")
-// ---------------------------------------------------------------
-const DAYS = {
-  0: { name: "Sunday",    planet: "Sun",     sym: "☉", free: true },
-  1: { name: "Monday",    planet: "Moon",    sym: "☾", free: false },
-  2: { name: "Tuesday",   planet: "Mars",    sym: "♂", free: false },
-  3: { name: "Wednesday", planet: "Mercury", sym: "☿", free: false },
-  4: { name: "Thursday",  planet: "Jupiter", sym: "♃", free: false },
-  5: { name: "Friday",    planet: "Venus",   sym: "♀", free: false },
-  6: { name: "Saturday",  planet: "Saturn",  sym: "♄", free: true },
-};
-
-// ---------------------------------------------------------------
-//  Zodiac signs -> elements (fun context only)
-// ---------------------------------------------------------------
-const SIGNS = [
-  { name:"Capricorn",   sym:"♑", el:"earth", s:[12,22], e:[1,19]  },
-  { name:"Aquarius",    sym:"♒", el:"air",   s:[1,20],  e:[2,18]  },
-  { name:"Pisces",      sym:"♓", el:"water", s:[2,19],  e:[3,20]  },
-  { name:"Aries",       sym:"♈", el:"fire",  s:[3,21],  e:[4,19]  },
-  { name:"Taurus",      sym:"♉", el:"earth", s:[4,20],  e:[5,20]  },
-  { name:"Gemini",      sym:"♊", el:"air",   s:[5,21],  e:[6,20]  },
-  { name:"Cancer",      sym:"♋", el:"water", s:[6,21],  e:[7,22]  },
-  { name:"Leo",         sym:"♌", el:"fire",  s:[7,23],  e:[8,22]  },
-  { name:"Virgo",       sym:"♍", el:"earth", s:[8,23],  e:[9,22]  },
-  { name:"Libra",       sym:"♎", el:"air",   s:[9,23],  e:[10,22] },
-  { name:"Scorpio",     sym:"♏", el:"water", s:[10,23], e:[11,21] },
-  { name:"Sagittarius", sym:"♐", el:"fire",  s:[11,22], e:[12,21] },
-];
-const ELEMENTS = {
-  fire:  { name:"Fire",  vibe:"hot & bright" },
-  earth: { name:"Earth", vibe:"rich & earthy" },
-  air:   { name:"Air",   vibe:"light & airy" },
-  water: { name:"Water", vibe:"deep & cool" },
-};
-
-// ---------------------------------------------------------------
-//  Astronomy helpers
-// ---------------------------------------------------------------
-function getSign(date) {
-  const m = date.getMonth() + 1, d = date.getDate();
-  for (const sg of SIGNS) {
-    if ((m === sg.s[0] && d >= sg.s[1]) || (m === sg.e[0] && d <= sg.e[1])) return sg;
-  }
-  return SIGNS[0];
-}
-
 function getMoon(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); // midnight — time-independent
-  const synodic = 29.53058867;
-  const knownNew = Date.UTC(2000, 0, 6, 18, 14, 0);
-  const days = (d.getTime() - knownNew) / 86400000;
-  const phase = ((days % synodic) + synodic) % synodic;
-  const frac = phase / synodic;                    // 0 new .. 0.5 full .. 1 new
-  const illum = (1 - Math.cos(2 * Math.PI * frac)) / 2;   // 0..1
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const synodic = 29.53058867, knownNew = Date.UTC(2000, 0, 6, 18, 14, 0);
+  const frac = ((((d.getTime() - knownNew) / 86400000) % synodic) + synodic) % synodic / synodic;
   const idx = Math.round(frac * 8) % 8;
   const NAMES  = ["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
   const EMOJIS = ["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
-  return { frac, illum, name: NAMES[idx], emoji: EMOJIS[idx] };
+  return { frac, name: NAMES[idx], emoji: EMOJIS[idx] };
+}
+
+const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+// ---------------------------------------------------------------
+//  The pick. Build the weighted table for the date, nudge it by weather, hash into it.
+// ---------------------------------------------------------------
+function hash32(x) {
+  x ^= x >>> 16; x = Math.imul(x, 0x7feb352d);
+  x ^= x >>> 15; x = Math.imul(x, 0x846ca68b);
+  x ^= x >>> 16; return x >>> 0;
+}
+//  Integer-weighted table for the date. Theme weeks: theme colors, equal weight.
+//  Otherwise: each color's drifted weight (×10 for resolution), × WX_NUDGE if the mood favors it.
+function weightedFor(d, wx) {
+  const theme = themeWeekFor(d);
+  if (theme) return theme.colors.map(byLabel);
+  const mood = wx && MOOD[wx.mood];
+  return PALETTE.flatMap(c => {
+    let w = weightOn(c, d) * 10;
+    if (mood && mood.favor(c)) w *= WX_NUDGE;
+    return Array(Math.round(w)).fill(c);
+  });
+}
+function pickColor(d, wx) {
+  const table = weightedFor(d, wx);
+  return table[hash32(daySeed(d) ^ (wx ? 0xA11CE : 0)) % table.length];
 }
 
 // ---------------------------------------------------------------
 //  Core: resolve a date to a color
 // ---------------------------------------------------------------
 function colorForDate(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); // midnight — color depends on date only
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dow = d.getDay();
-  const day = DAYS[dow];
-  const sign = getSign(d);
-  const moon = getMoon(d);
-  const theme = themeWeekFor(d);
-  const base = { weekend:false, day, sign, moon, theme, isPink:false, isFlannel:false, holiday:null };
-  const pick = (c, extra) => ({ ...base, ...extra,
-    shade:{name:c.label, hex:c.hex}, team:c.team,
-    family:{label:c.label, qualifies:c.qualifies} });
+  const moon = getMoon(d), season = seasonFor(d), theme = themeWeekFor(d), wx = weatherFor(d);
+  const base = { weekend:false, dow, dayName:DAYS[dow], moon, season, theme, wx, isPink:false, isFlannel:false, holiday:null };
+  const pick = (c, extra) => ({ ...base, ...extra, shade:{name:c.label, hex:c.hex}, team:c.team, family:{label:c.label, qualifies:c.qualifies} });
 
-  if (day.free) {
-    return { ...base, weekend:true, team:null,
-      shade:{name:"Free day", hex:"#d3d5da"},
-      family:{label:"Weekend", qualifies:"wear whatever — recharge your palette"} };
-  }
+  if (dow === 0 || dow === 6)
+    return { ...base, weekend:true, team:null, shade:{name:"Free day", hex:"#d3d5da"}, family:{label:"Weekend", qualifies:"wear whatever — recharge your palette"} };
 
-  // Holidays win over everything
   const hol = holidayFor(d);
   if (hol) return pick(hol.color, { holiday:hol });
 
-  // Theme weeks own their run — flannel and pink sit out so the theme reads clean
   if (!theme) {
-    if (isFlannelDay(d, sign, moon)) return pick(FLANNEL, { isFlannel:true });
-    if (isPinkDay(d, sign, moon))    return pick(PINK,    { isPink:true });
+    if (isFlannelDay(d)) return pick(FLANNEL, { isFlannel:true });
+    if (isPinkDay(d))    return pick(PINK,    { isPink:true });
   }
 
-  let c = celestialColor(d, sign, moon);
-  // Keep two weekdays in a row from landing on the same color (stays lively).
-  // Compare against yesterday's *final* color (it may itself have been bumped), and bump
-  // within the colors active for this date so a seasonal color never leaks out of season.
-  // Step must not be a multiple of the palette size or it'd wrap back onto the same color.
+  let c = pickColor(d, wx);
+  // No two workdays in a row on the same color. Compare to yesterday's *final* color and
+  // bump within today's active set (so seasonal colors never leak out of season).
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
   if (prev.getDay() >= 1 && prev.getDay() <= 5 && !themeWeekFor(prev) === !theme) {
     const pr = colorForDate(prev);
     if (!pr.holiday && !pr.isFlannel && !pr.isPink && pr.shade.name === c.label) {
-      const active = [...new Set(weightedFor(d))];
-      const step = active.length > 4 ? 3 : 1;
-      c = active[(active.indexOf(c) + step) % active.length];
+      const active = [...new Set(weightedFor(d, wx))];
+      c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
     }
   }
   return pick(c, {});
 }
 
-//  Next workday after a given date (skips weekends)
 function nextWorkday(date) {
   const n = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   do { n.setDate(n.getDate() + 1); } while (n.getDay() === 0 || n.getDay() === 6);
@@ -598,36 +661,32 @@ function nextWorkday(date) {
 //  Rendering
 // ---------------------------------------------------------------
 function contrastText(hex) {
-  const c = hex.replace("#","");
-  const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+  const c = hex.replace("#",""), r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
   return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.6 ? "#1a1a1a" : "#ffffff";
 }
-
 let selected = new Date();
 let view = new Date(selected.getFullYear(), selected.getMonth(), 1);
 const el = id => document.getElementById(id);
-const fmt = (d) => d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+const fmt = d => d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+const specialMark = r => r.holiday ? " " + r.holiday.emoji : r.isFlannel ? " 🍂" : "";
 
 function renderHero(date) {
   const r = colorForDate(date);
-  const fg = contrastText(r.shade.hex);
   const sw = el("swatch");
   sw.style.background = r.shade.hex;
-  sw.style.color = fg;
+  sw.style.color = contrastText(r.shade.hex);
   document.body.dataset.season = seasonOf(date);
   const isToday = date.toDateString() === new Date().toDateString();
-  el("swEyebrow").textContent = r.weekend ? "Weekend" : (isToday ? "Today" : fmt(date));
+  el("swEyebrow").textContent = r.weekend ? "Weekend" : isToday ? "Today" : fmt(date);
   el("swName").textContent = r.shade.name;
   el("swHex").textContent = r.shade.hex.toUpperCase();
-  el("swTeam").textContent = r.team ? r.team : "";
-  el("swTag").textContent = r.weekend
-    ? "wear whatever — recharge your palette"
-    : r.holiday
-      ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
-      : r.day.name + " · " + r.day.planet + " · " + r.sign.sym + " " + r.sign.name + " · " + r.moon.emoji + " " + r.moon.name
-        + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Day!" : "");
+  el("swTeam").textContent = r.team || "";
+  el("swTag").textContent = r.weekend ? "wear whatever — recharge your palette"
+    : r.holiday ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
+    : r.dayName + " · " + r.season.emoji + " " + r.season.name + " · " + r.moon.emoji + " " + r.moon.name
+      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Day!" : "");
 
-  // Theme-week banner — shows during the week, and the week before as a heads-up
+  // Theme-week banner — during the week, and the week before as a heads-up
   const banner = el("themeBanner");
   const upcoming = themeWeekFor(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7));
   if (r.theme) {
@@ -636,67 +695,53 @@ function renderHero(date) {
   } else if (upcoming && !r.weekend) {
     banner.innerHTML = `<span class="t-emoji">${upcoming.emoji}</span><b>Next week: ${upcoming.name}</b><span class="t-note">${upcoming.colors.join(" · ")}</span>`;
     banner.className = "theme-banner soon";
-  } else {
-    banner.className = "theme-banner";
-  }
+  } else banner.className = "theme-banner";
 
-  // Tomorrow whisper — next workday's color, for planning
-  const nxt = nextWorkday(date);
-  const nr = colorForDate(nxt);
-  const nxtLabel = nxt.toLocaleDateString(undefined, { weekday:"long" });
-  el("swTomorrow").textContent = nxtLabel + ": " + nr.shade.name + (nr.holiday ? " " + nr.holiday.emoji : nr.isFlannel ? " 🍂" : nr.theme && !r.theme ? " " + nr.theme.emoji : "");
+  // Next workday whisper
+  const nxt = nextWorkday(date), nr = colorForDate(nxt);
+  el("swTomorrow").textContent = nxt.toLocaleDateString(undefined, { weekday:"long" }) + ": " + nr.shade.name
+    + (specialMark(nr) || (nr.theme && !r.theme ? " " + nr.theme.emoji : "") || (nr.wx ? " " + MOOD[nr.wx.mood].emoji : ""));
 
   const q = el("qualifies");
-  if (r.weekend) {
-    q.innerHTML = "<b>Weekend.</b> " + r.family.qualifies;
-  } else if (r.holiday) {
-    q.innerHTML = r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>. Holidays overrule the sky!";
-  } else if (r.isFlannel) {
-    q.innerHTML = "🍂 <b>Flannel Day</b> — <i>" + r.family.qualifies + "</i>. Cold out. Cozy up.";
-  } else if (r.theme) {
-    q.innerHTML = r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>.";
-  } else {
-    q.innerHTML = "<b>" + r.family.label + "</b> today — any shade counts: <i>" + r.family.qualifies + "</i>. Do your best!";
-  }
+  q.innerHTML = r.weekend ? "<b>Weekend.</b> " + r.family.qualifies
+    : r.holiday ? r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>. Holidays overrule the season!"
+    : r.isFlannel ? "🍂 <b>Flannel Day</b> — <i>" + r.family.qualifies + "</i>. Cold out. Cozy up."
+    : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>."
+    : "<b>" + r.family.label + "</b> today — any shade counts: <i>" + r.family.qualifies + "</i>. Do your best!";
 
-  // Why chips — with a voice
-  const why = el("why");
-  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : "sun · moon · day";
+  // Why chips: Season · Weather · Moon · Blend
+  const loc = getLoc();
+  const hours = daylightHours(date, loc ? loc.lat : 45);
+  const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
+  const wxChip = r.wx
+    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Locked in — it won't change." }
+    : loc
+      ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast now…" : "Tomorrow's forecast locks after 6pm — check back tonight." }
+      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Set a location</a> to let the forecast nudge the odds." };
+  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : r.wx ? "season × weather" : "season";
   const blendVoice = r.weekend ? "No rules on the weekend."
     : r.holiday ? r.holiday.note
-    : r.theme ? "This week the sky picks from " + r.theme.colors.length + " colors only."
+    : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
     : r.isFlannel ? "Any flannel counts — the color is yours. Today you're " + r.team + "."
-    : r.isPink ? "A rare one — the sky rolled pink. Today you're " + r.team + "."
-    : "Three sky-readings, one color. Today you're " + r.team + ".";
-  const rows = [
-    { icon: r.day.sym,    label:"Day",   value: r.day.name + " · " + r.day.planet, voice: PLANET_VOICE[r.day.planet] || "" },
-    { icon: r.sign.sym,   label:"Sun",   value: r.sign.name + " · " + ELEMENTS[r.sign.el].name, voice: SIGN_VOICE[r.sign.name] || "" },
-    { icon: r.moon.emoji, label:"Moon",  value: r.moon.name, voice: MOON_VOICE[r.moon.name] || "" },
-    { icon: "✨",         label:"Blend", value: blendValue, voice: blendVoice },
-  ];
-  why.innerHTML = rows.map(row => `
-    <div class="why-chip">
-      <div class="icon">${row.icon}</div>
-      <div class="label">${row.label}</div>
-      <div class="value">${row.value}</div>
-      <div class="voice">${row.voice}</div>
-    </div>`).join("");
+    : r.isPink ? "A rare one — the dice rolled pink. Today you're " + r.team + "."
+    : (r.wx ? "The season sets the odds, the sky tilts them. " : "The season sets the odds. ") + "Today you're " + r.team + ".";
+  el("why").innerHTML = [
+    { icon: r.season.emoji, label:"Season",  value: r.season.name + " · " + hh + "h " + String(mm).padStart(2,"0") + "m light", voice: r.season.voice },
+    wxChip,
+    { icon: r.moon.emoji,   label:"Moon",    value: r.moon.name, voice: MOON_VOICE[r.moon.name] },
+    { icon:"✨",            label:"Blend",   value: blendValue, voice: blendVoice },
+  ].map(row => `<div class="why-chip"><div class="icon">${row.icon}</div><div class="label">${row.label}</div><div class="value">${row.value}</div><div class="voice">${row.voice}</div></div>`).join("");
+  const link = el("setLocLink"); if (link) link.onclick = e => { e.preventDefault(); openSettings(); };
 }
 
 function renderWeek(date) {
-  const day = date.getDay();
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((day + 6) % 7));
-  const week = el("week");
+  const monday = mondayOf(date), week = el("week");
   week.innerHTML = "";
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
-    const r = colorForDate(d);
-    const cell = document.createElement("div");
+    const r = colorForDate(d), cell = document.createElement("div");
     cell.className = "day" + (r.weekend ? " free" : "") + (d.toDateString() === date.toDateString() ? " selected" : "");
-    cell.innerHTML = `
-      <div class="dow">${DAYS[d.getDay()].name.slice(0,3)}</div>
-      <div class="sw" style="background:${r.shade.hex}"></div>
+    cell.innerHTML = `<div class="dow">${DAYS[d.getDay()].slice(0,3)}</div><div class="sw" style="background:${r.shade.hex}"></div>
       <div class="cname">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji + " " : "") + r.shade.name}</div>`;
     cell.onclick = () => { selected = d; renderAll(); };
     week.appendChild(cell);
@@ -704,55 +749,59 @@ function renderWeek(date) {
 }
 
 function renderMonth() {
-  const y = view.getFullYear(), m = view.getMonth();
+  const y = view.getFullYear(), m = view.getMonth(), today = new Date();
   el("monthTitle").textContent = view.toLocaleDateString(undefined, { month:"long", year:"numeric" });
   el("monthHead").innerHTML = ["S","M","T","W","T","F","S"].map(s => `<span>${s}</span>`).join("");
-
-  const first = new Date(y, m, 1);
-  const startDow = first.getDay();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const today = new Date();
-
-  const grid = el("monthGrid");
-  grid.innerHTML = "";
-  for (let i = 0; i < startDow; i++) grid.appendChild(blank());
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dt = new Date(y, m, d);
-    const r = colorForDate(dt);
-    const cell = document.createElement("div");
-    let cls = "mcell";
-    if (r.weekend) cls += " free";
-    if (dt.toDateString() === selected.toDateString()) cls += " selected";
-    if (dt.toDateString() === today.toDateString()) cls += " today";
-    cell.className = cls;
-    cell.innerHTML = `
-      <div class="num">${d}</div>
-      <div class="bar" style="background:${r.shade.hex}"></div>
-      <div class="cn">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name)}</div>`;
-    if (r.theme && !r.weekend) cell.classList.add("themed");
+  const grid = el("monthGrid"); grid.innerHTML = "";
+  for (let i = 0; i < new Date(y, m, 1).getDay(); i++) grid.appendChild(Object.assign(document.createElement("div"), { className:"mcell blank" }));
+  for (let d = 1, n = new Date(y, m + 1, 0).getDate(); d <= n; d++) {
+    const dt = new Date(y, m, d), r = colorForDate(dt), cell = document.createElement("div");
+    cell.className = "mcell" + (r.weekend ? " free" : "") + (dt.toDateString() === selected.toDateString() ? " selected" : "")
+      + (dt.toDateString() === today.toDateString() ? " today" : "") + (r.theme && !r.weekend ? " themed" : "");
+    cell.innerHTML = `<div class="num">${d}</div><div class="bar" style="background:${r.shade.hex}"></div>
+      <div class="cn">${r.weekend ? "free" : r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name}</div>`;
     cell.onclick = () => { selected = dt; renderAll(); };
     grid.appendChild(cell);
   }
 }
 
-function blank() {
-  const b = document.createElement("div");
-  b.className = "mcell blank";
-  return b;
+// ---------------------------------------------------------------
+//  Settings sheet — location for the weather mood
+// ---------------------------------------------------------------
+function openSettings() {
+  const loc = getLoc();
+  el("locCurrent").textContent = loc ? "📍 " + loc.place : "No location set — weather is off.";
+  el("locInput").value = "";
+  el("locMsg").textContent = "";
+  el("settings").classList.add("open");
+  setTimeout(() => el("locInput").focus(), 50);
+}
+function closeSettings() { el("settings").classList.remove("open"); }
+async function saveLocation() {
+  const q = el("locInput").value.trim();
+  if (!q) return;
+  el("locMsg").textContent = "Looking up…";
+  try { await setLocationByName(q); el("locMsg").textContent = "Saved. Forecast locks each evening."; el("locCurrent").textContent = "📍 " + getLoc().place; }
+  catch { el("locMsg").textContent = "Couldn't find that place — try a city name."; }
 }
 
 function renderAll() {
   document.title = colorForDate(selected).shade.name + " · Toga";
-  renderHero(selected);
-  renderWeek(selected);
-  renderMonth();
+  renderHero(selected); renderWeek(selected); renderMonth();
 }
 
 el("todayBtn").onclick = () => { selected = new Date(); view = new Date(selected.getFullYear(), selected.getMonth(), 1); renderAll(); };
 el("prevMonth").onclick = () => { view.setMonth(view.getMonth() - 1); renderAll(); };
 el("nextMonth").onclick = () => { view.setMonth(view.getMonth() + 1); renderAll(); };
+el("settingsBtn").onclick = openSettings;
+el("settingsClose").onclick = closeSettings;
+el("settings").onclick = e => { if (e.target === el("settings")) closeSettings(); };
+el("locSave").onclick = saveLocation;
+el("locInput").onkeydown = e => { if (e.key === "Enter") saveLocation(); };
+el("locGPS").onclick = async () => { el("locMsg").textContent = "Asking your phone…"; try { await setLocationByGPS(); el("locMsg").textContent = "Saved."; el("locCurrent").textContent = "📍 Your location"; } catch { el("locMsg").textContent = "Location permission denied."; } };
+el("locClear").onclick = () => { clearLocation(); el("locCurrent").textContent = "No location set — weather is off."; el("locMsg").textContent = "Weather turned off."; };
 renderAll();
+refreshWeather();
 </script>
 </body>
 </html>
