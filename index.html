@@ -263,7 +263,7 @@ function weightedFor(d) {
   return PALETTE.filter(c => !c.season || c.season.includes(m)).flatMap(c => Array(c.weight).fill(c));
 }
 
-//  Pink is a rare treat, not part of the rotation — see isPinkFriday()
+//  Pink is a rare treat, not part of the rotation — see isPinkDay()
 const PINK = { label: "Pink", hex: "#E88AA0", qualifies: "blush, rose, magenta, raspberry, petal, mauve" };
 
 //  Flannel — Jasmin's idea. Any flannel, any color, all cold season (Oct 1 – Mar 31). 🍂
@@ -356,21 +356,12 @@ const SIGN_VOICE = {
   Sagittarius:"Sagittarius season — adventurous and optimistic.",
 };
 
-//  Weeks since a fixed Monday — used only to time Pink Fridays
-const EPOCH_MONDAY = new Date(2026, 0, 5); // Jan 5, 2026 was a Monday
-
-function weekIndexFor(date) {
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-  monday.setHours(0, 0, 0, 0);
-  return Math.floor((monday.getTime() - EPOCH_MONDAY.getTime()) / 604800000);
-}
-
-//  Every 4th Friday is Pink Day (Venus = love) — a sparing, once-a-month treat
-function isPinkFriday(date) {
-  if (date.getDay() !== 5) return false;
-  const wi = weekIndexFor(date);
-  return ((wi % 4) + 4) % 4 === 0;
+//  Pink Day — rare, sky-rolled, any weekday. ~1 in 20 workdays ≈ once a month.
+//  Own salt so it's independent of the color and flannel rolls.
+const PINK_ODDS = 20;
+function isPinkDay(d, sign, moon) {
+  const x = SIGNS.indexOf(sign) * 100000 + d.getDay() * 10000 + Math.round(moon.frac * 1000);
+  return hash32(x ^ 0x9D1E) % PINK_ODDS === 0;
 }
 
 // ---------------------------------------------------------------
@@ -484,14 +475,14 @@ function colorForDate(date) {
       family:{label:hol.color.label, qualifies:hol.color.qualifies} };
   }
 
-  // Flannel days scatter through the cold season — Jasmin's idea; outranks Pink Friday
+  // Flannel days scatter through the cold season — Jasmin's idea; outranks Pink
   if (isFlannelDay(d, sign, moon)) {
     return { weekend:false, day, sign, moon, isPink:false, isFlannel:true, holiday:null,
       shade:{name:FLANNEL.label, hex:FLANNEL.hex},
       family:{label:FLANNEL.label, qualifies:FLANNEL.qualifies} };
   }
 
-  if (isPinkFriday(d)) {
+  if (isPinkDay(d, sign, moon)) {
     return { weekend:false, day, sign, moon, isPink:true, holiday:null,
       shade:{name:PINK.label, hex:PINK.hex},
       family:{label:PINK.label, qualifies:PINK.qualifies} };
@@ -548,7 +539,7 @@ function renderHero(date) {
     : r.holiday
       ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
       : r.day.name + " · " + r.day.planet + " · " + r.sign.sym + " " + r.sign.name + " · " + r.moon.emoji + " " + r.moon.name
-        + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Friday!" : "");
+        + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Day!" : "");
 
   // Tomorrow whisper — next workday's color, for planning
   const nxt = nextWorkday(date);
@@ -569,12 +560,12 @@ function renderHero(date) {
 
   // Why chips — with a voice
   const why = el("why");
-  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Friday" : "sun · moon · day";
+  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : "sun · moon · day";
   const rows = [
     { icon: r.day.sym,    label:"Day",   value: r.day.name + " · " + r.day.planet, voice: PLANET_VOICE[r.day.planet] || "" },
     { icon: r.sign.sym,   label:"Sun",   value: r.sign.name + " · " + ELEMENTS[r.sign.el].name, voice: SIGN_VOICE[r.sign.name] || "" },
     { icon: r.moon.emoji, label:"Moon",  value: r.moon.name, voice: MOON_VOICE[r.moon.name] || "" },
-    { icon: "✨",         label:"Blend", value: blendValue, voice: r.holiday ? r.holiday.note : r.isFlannel ? "Jasmin's idea. Any flannel counts — the color is yours." : r.isPink ? "Once a month, Friday goes pink." : r.weekend ? "No rules on the weekend." : "Three sky-readings hashed into one color." },
+    { icon: "✨",         label:"Blend", value: blendValue, voice: r.holiday ? r.holiday.note : r.isFlannel ? "Jasmin's idea. Any flannel counts — the color is yours." : r.isPink ? "A rare one — the sky rolled pink today." : r.weekend ? "No rules on the weekend." : "Three sky-readings hashed into one color." },
   ];
   why.innerHTML = rows.map(row => `
     <div class="why-chip">
