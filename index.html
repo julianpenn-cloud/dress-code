@@ -392,7 +392,7 @@
       <button class="link-btn" id="locClear">Go universal</button>
     </div>
     <div class="loc-msg" id="locMsg"></div>
-    <p class="sheet-fine">The forecast locks each evening after 6pm — no morning surprises. Stored only on this device. Weather by Open-Meteo. Like everything here: optional.</p>
+    <p class="sheet-fine">Tomorrow's forecast arrives each evening after 6pm and stays put — no morning surprises. Stored only on this device. Weather by Open-Meteo. Like everything here: optional.</p>
   </div>
 </div>
 
@@ -836,11 +836,13 @@ function renderHero(date) {
   const reg = regionInfo(getRegion());
   const hours = daylightHours(date, reg ? reg.lat : 45);
   const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
+  // Weather chip describes the COLOR, never the fetch: Universal (no zip) · Seasonal (zip set,
+  // forecast not in yet — today ran on the season alone) · the forecast itself once it's in.
   const wxChip = r.wx
-    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Locked in for " + reg.label + " — same for everyone there." }
+    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Shared with everyone in " + reg.label + "." }
     : reg
-      ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast for " + reg.label + "…" : "Tomorrow's forecast for " + reg.label + " locks after 6pm." }
-      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Add your zip</a> to share the weather with everyone nearby. Totally optional." };
+      ? { icon:"🌤️", label:"Weather", value:"Seasonal", voice: reg.label + " · today runs on the season. Tomorrow's forecast arrives this evening." }
+      : { icon:"📍", label:"Weather", value:"Universal", voice:"Same color everywhere. <a href='#' id='setLocLink'>Add your zip</a> to share the weather with everyone nearby." };
   const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.wx ? "season × weather" : "season";
   const blendVoice = (r.holiday ? r.holiday.note
     : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
