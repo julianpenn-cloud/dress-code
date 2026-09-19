@@ -20,18 +20,27 @@
     --radius: 16px;
     --shadow: 0 10px 30px rgba(47, 74, 54, 0.10);
     --shadow-soft: 0 4px 14px rgba(47, 74, 54, 0.06);
+    /* Seasonal stained-glass tints — two soft panes of light behind the page */
+    --tint-a: rgba(179, 134, 47, 0.10);
+    --tint-b: rgba(47, 74, 54, 0.06);
   }
+  body[data-season="winter"] { --tint-a: rgba(94, 132, 190, 0.20); --tint-b: rgba(142, 99, 196, 0.12); }
+  body[data-season="spring"] { --tint-a: rgba(110, 176, 120, 0.19); --tint-b: rgba(227, 178, 60, 0.12); }
+  body[data-season="summer"] { --tint-a: rgba(227, 178, 60, 0.19); --tint-b: rgba(58, 111, 168, 0.12); }
+  body[data-season="autumn"] { --tint-a: rgba(196, 96, 58, 0.18); --tint-b: rgba(122, 82, 48, 0.12); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background:
-      radial-gradient(1200px 500px at 50% -200px, rgba(179, 134, 47, 0.08), transparent 60%),
+      radial-gradient(900px 420px at 15% -120px, var(--tint-a), transparent 65%),
+      radial-gradient(800px 460px at 90% 10%, var(--tint-b), transparent 65%),
       var(--paper);
     color: var(--ink);
     line-height: 1.45;
     padding: 0 0 24px;
     -webkit-font-smoothing: antialiased;
+    transition: background 0.6s ease;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
   .serif { font-family: "Playfair Display", Georgia, "Times New Roman", serif; }
@@ -95,6 +104,40 @@
     background: radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,0.22), transparent 55%);
     pointer-events: none;
   }
+  /* Stained glass: irregular panes of light and shadow, joined by dark leading.
+     Built from overlapping conic wedges + two crossing lead-line grids. */
+  .swatch .glass {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      conic-gradient(from 200deg at 18% 30%,  rgba(255,255,255,0.20) 0 70deg, transparent 70deg 360deg),
+      conic-gradient(from 20deg  at 78% 22%,  rgba(0,0,0,0.13) 0 80deg, transparent 80deg 360deg),
+      conic-gradient(from 300deg at 62% 72%,  rgba(255,255,255,0.14) 0 90deg, transparent 90deg 360deg),
+      conic-gradient(from 110deg at 30% 82%,  rgba(0,0,0,0.10) 0 65deg, transparent 65deg 360deg),
+      conic-gradient(from 250deg at 90% 60%,  rgba(255,255,255,0.10) 0 60deg, transparent 60deg 360deg),
+      repeating-linear-gradient(112deg, transparent 0 22%, rgba(18,14,8,0.30) 22% 22.7%),
+      repeating-linear-gradient(24deg,  transparent 0 31%, rgba(18,14,8,0.24) 31% 31.8%);
+    mix-blend-mode: soft-light;
+    opacity: 0.95;
+  }
+  .swatch > *:not(.glass) { position: relative; z-index: 1; }
+  .swatch .team {
+    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-size: 15px; font-weight: 500; opacity: 0.86; margin: -2px 0 6px; letter-spacing: 0.2px;
+  }
+  .swatch .team:empty { display: none; }
+
+  /* Theme-week banner — a leaded strip under the hero */
+  .theme-banner { display: none; }
+  .theme-banner.on, .theme-banner.soon {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 14px; border-radius: 12px; font-size: 12.5px;
+    border: 1px solid var(--line);
+    background: linear-gradient(90deg, var(--tint-a), var(--tint-b)), var(--card);
+  }
+  .theme-banner.soon { opacity: 0.8; font-size: 12px; }
+  .theme-banner .t-emoji { font-size: 16px; }
+  .theme-banner b { font-family: "Playfair Display", Georgia, serif; font-weight: 600; color: var(--green); }
+  .theme-banner .t-note { color: var(--muted); font-style: italic; }
   .swatch .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
   .swatch .name { font-family: "Playfair Display", Georgia, serif; font-size: 44px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; margin: 7px 0 4px; }
   .swatch .hex { font-size: 12px; font-weight: 600; opacity: 0.75; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
@@ -133,7 +176,7 @@
   /* ------------------------------------------------ Why chips (2x2) */
   .why { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .why-chip {
-    background: var(--paper);
+    background: linear-gradient(160deg, var(--tint-a), transparent 70%), var(--paper);
     border: 1px solid var(--line);
     border-radius: 11px;
     padding: 10px 12px;
@@ -175,6 +218,7 @@
   .mcell.free .bar { background: transparent !important; }
   .mcell.selected { outline: 2px solid var(--gold); outline-offset: -1px; }
   .mcell.today { box-shadow: 0 0 0 2px var(--green) inset; }
+  .mcell.themed { background: linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card); }
 
   footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 20px; }
   footer .brand { font-family: "Playfair Display", Georgia, serif; font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 1px; }
@@ -198,12 +242,15 @@
 
     <div class="col">
       <div class="swatch" id="swatch">
+        <div class="glass"></div>
         <div class="eyebrow" id="swEyebrow"></div>
         <div class="name" id="swName"></div>
+        <div class="team" id="swTeam"></div>
         <div class="hex" id="swHex"></div>
         <div class="tagline" id="swTag"></div>
         <div class="tomorrow" id="swTomorrow"></div>
       </div>
+      <div class="theme-banner" id="themeBanner"></div>
       <div class="qualifies" id="qualifies"></div>
       <div class="panel">
         <h2>This week</h2>
@@ -244,31 +291,68 @@
 //  `weight` = how often it comes up, tuned to what the closets actually hold.
 //  Deep stock (brown/red/black/white/blue/grey) = 3, thin (green) = 2, rare (purple) = 1.
 //  `season` (optional) = months the color is active; omitted = year-round.
+//  `team` = the day's team name, for saying out loud.
 // ---------------------------------------------------------------
 const PALETTE = [
-  { label: "Purple", hex: "#8E63C4", weight: 1, qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
-  { label: "Red",    hex: "#C4453A", weight: 3, qualifies: "maroon, burgundy, brick, coral, rust, wine" },
-  { label: "Blue",   hex: "#3A6FA8", weight: 3, qualifies: "navy, sky, steel, denim, powder, teal" },
-  { label: "Green",  hex: "#4E8A5A", weight: 2, qualifies: "olive, forest, sage, emerald, moss, pine" },
-  { label: "Brown",  hex: "#7A5230", weight: 3, qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
-  { label: "Grey",   hex: "#8A8D8F", weight: 3, qualifies: "charcoal, slate, silver, heather, stone, dove" },
-  { label: "White",  hex: "#F1EFEA", weight: 3, qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
-  { label: "Black",  hex: "#2E2E2E", weight: 3, qualifies: "charcoal, graphite, slate, dark grey, onyx" },
+  { label: "Purple", hex: "#8E63C4", weight: 1, team: "The Royal Court",  qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
+  { label: "Red",    hex: "#C4453A", weight: 3, team: "The Ember Crew",   qualifies: "maroon, burgundy, brick, coral, rust, wine" },
+  { label: "Blue",   hex: "#3A6FA8", weight: 3, team: "The Lakeside Tide", qualifies: "navy, sky, steel, denim, powder, teal" },
+  { label: "Green",  hex: "#4E8A5A", weight: 2, team: "The Cedar Guard",  qualifies: "olive, forest, sage, emerald, moss, pine" },
+  { label: "Brown",  hex: "#7A5230", weight: 3, team: "The Groundskeepers", qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
+  { label: "Grey",   hex: "#8A8D8F", weight: 3, team: "The Slate Society", qualifies: "charcoal, slate, silver, heather, stone, dove" },
+  { label: "White",  hex: "#F1EFEA", weight: 3, team: "The Frost Line",   qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
+  { label: "Black",  hex: "#2E2E2E", weight: 3, team: "The Night Shift",  qualifies: "charcoal, graphite, slate, dark grey, onyx" },
   //  Yellow: spring & summer only (Mar–Aug). Thin weight — the closets are still catching up. ☀️
-  { label: "Yellow", hex: "#E3B23C", weight: 2, season: [3,4,5,6,7,8], qualifies: "mustard, gold, butter, lemon, marigold, honey" },
+  { label: "Yellow", hex: "#E3B23C", weight: 2, team: "The Sunrise Club", season: [3,4,5,6,7,8], qualifies: "mustard, gold, butter, lemon, marigold, honey" },
 ];
-//  Colors in play for a given date (seasonal ones only in their months), expanded by weight
+const byLabel = l => PALETTE.find(c => c.label === l);
+
+// ---------------------------------------------------------------
+//  Themed weeks — a handful a year. That week the sky picks only from the
+//  theme's colors. Each is anchored to a date ([month, day]); whichever
+//  Mon–Fri week contains that date is the theme week, so it works every year.
+// ---------------------------------------------------------------
+const THEME_WEEKS = [
+  { name:"Jewel Tone Week",   emoji:"💎", anchor:[1,21],  colors:["Purple","Green","Blue","Red"],  note:"Deep and saturated — emerald, sapphire, ruby, amethyst" },
+  { name:"Neutrals Week",     emoji:"🪨", anchor:[3,11],  colors:["Grey","Brown","White","Black"], note:"Calm and quiet — let texture do the talking" },
+  { name:"Fresh Start Week",  emoji:"🌱", anchor:[5,6],   colors:["Green","Yellow","White","Blue"], note:"Spring on your sleeve — light, bright, awake" },
+  { name:"Summer Sky Week",   emoji:"🌤️", anchor:[7,15],  colors:["Blue","White","Yellow"],       note:"Sky, cloud, sun — nothing heavier" },
+  { name:"Earth Tone Week",   emoji:"🍁", anchor:[9,23],  colors:["Brown","Green","Red","Grey"],   note:"Harvest colors — warm, grounded, layered" },
+  { name:"Monochrome Week",   emoji:"◐",  anchor:[11,11], colors:["Black","Grey","White"],        note:"One color head to toe — any shade, all the way down" },
+];
+//  Monday of the week containing d (Mon–Fri weeks; weekends belong to the week before)
+function mondayOf(d) {
+  const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+  return m;
+}
+function themeWeekFor(d) {
+  const mon = mondayOf(d).getTime();
+  return THEME_WEEKS.find(t => mondayOf(new Date(d.getFullYear(), t.anchor[0] - 1, t.anchor[1])).getTime() === mon) || null;
+}
+
+// ---------------------------------------------------------------
+//  Seasons — drive the stained-glass tint of the whole page
+// ---------------------------------------------------------------
+function seasonOf(d) {
+  const m = d.getMonth() + 1;
+  return m <= 2 || m === 12 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
+}
+//  Colors in play for a given date, expanded by weight. A theme week narrows the
+//  field to its colors (equal weight); otherwise seasonal colors only in their months.
 function weightedFor(d) {
+  const theme = themeWeekFor(d);
+  if (theme) return theme.colors.map(byLabel);
   const m = d.getMonth() + 1;
   return PALETTE.filter(c => !c.season || c.season.includes(m)).flatMap(c => Array(c.weight).fill(c));
 }
 
 //  Pink is a rare treat, not part of the rotation — see isPinkDay()
-const PINK = { label: "Pink", hex: "#E88AA0", qualifies: "blush, rose, magenta, raspberry, petal, mauve" };
+const PINK = { label: "Pink", hex: "#E88AA0", team: "The Rose Garden", qualifies: "blush, rose, magenta, raspberry, petal, mauve" };
 
-//  Flannel — Jasmin's idea. Any flannel, any color, all cold season (Oct 1 – Mar 31). 🍂
+//  Flannel — any flannel, any color, all cold season (Oct 1 – Mar 31). 🍂
 //  Not tied to a weekday: the sky rolls it, ~1 in 4 workdays, landing anywhere in the week.
-const FLANNEL = { label: "Flannel", hex: "#8B3A2E", qualifies: "any flannel — red, brown, black, white, plaid, whatever you've got" };
+const FLANNEL = { label: "Flannel", hex: "#8B3A2E", team: "The Lumber Yard", qualifies: "any flannel — red, brown, black, white, plaid, whatever you've got" };
 const FLANNEL_MONTHS = [10, 11, 12, 1, 2, 3];
 const FLANNEL_ODDS = 4; // 1 in N
 function isFlannelDay(d, sign, moon) {
@@ -278,7 +362,7 @@ function isFlannelDay(d, sign, moon) {
 }
 
 //  Orange lives only here — the one week a year it's allowed 🎃
-const ORANGE = { label: "Orange", hex: "#E0822E", qualifies: "burnt orange, rust, pumpkin, amber, copper, peach" };
+const ORANGE = { label: "Orange", hex: "#E0822E", team: "The Pumpkin Patch", qualifies: "burnt orange, rust, pumpkin, amber, copper, peach" };
 
 // ---------------------------------------------------------------
 //  Holiday overrides — these dates just win, no matter what the sky says
@@ -460,47 +544,43 @@ function colorForDate(date) {
   const day = DAYS[dow];
   const sign = getSign(d);
   const moon = getMoon(d);
+  const theme = themeWeekFor(d);
+  const base = { weekend:false, day, sign, moon, theme, isPink:false, isFlannel:false, holiday:null };
+  const pick = (c, extra) => ({ ...base, ...extra,
+    shade:{name:c.label, hex:c.hex}, team:c.team,
+    family:{label:c.label, qualifies:c.qualifies} });
 
   if (day.free) {
-    return { weekend:true, day, sign, moon, isPink:false, holiday:null,
+    return { ...base, weekend:true, team:null,
       shade:{name:"Free day", hex:"#d3d5da"},
       family:{label:"Weekend", qualifies:"wear whatever — recharge your palette"} };
   }
 
   // Holidays win over everything
   const hol = holidayFor(d);
-  if (hol) {
-    return { weekend:false, day, sign, moon, isPink:false, holiday:hol,
-      shade:{name:hol.color.label, hex:hol.color.hex},
-      family:{label:hol.color.label, qualifies:hol.color.qualifies} };
-  }
+  if (hol) return pick(hol.color, { holiday:hol });
 
-  // Flannel days scatter through the cold season — Jasmin's idea; outranks Pink
-  if (isFlannelDay(d, sign, moon)) {
-    return { weekend:false, day, sign, moon, isPink:false, isFlannel:true, holiday:null,
-      shade:{name:FLANNEL.label, hex:FLANNEL.hex},
-      family:{label:FLANNEL.label, qualifies:FLANNEL.qualifies} };
-  }
-
-  if (isPinkDay(d, sign, moon)) {
-    return { weekend:false, day, sign, moon, isPink:true, holiday:null,
-      shade:{name:PINK.label, hex:PINK.hex},
-      family:{label:PINK.label, qualifies:PINK.qualifies} };
+  // Theme weeks own their run — flannel and pink sit out so the theme reads clean
+  if (!theme) {
+    if (isFlannelDay(d, sign, moon)) return pick(FLANNEL, { isFlannel:true });
+    if (isPinkDay(d, sign, moon))    return pick(PINK,    { isPink:true });
   }
 
   let c = celestialColor(d, sign, moon);
   // Keep two weekdays in a row from landing on the same color (stays lively).
-  // Bump within the colors active for this date so a seasonal color never leaks out of season.
+  // Compare against yesterday's *final* color (it may itself have been bumped), and bump
+  // within the colors active for this date so a seasonal color never leaks out of season.
+  // Step must not be a multiple of the palette size or it'd wrap back onto the same color.
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
-  if (prev.getDay() >= 1 && prev.getDay() <= 5 && c === celestialColor(prev, getSign(prev), getMoon(prev))) {
-    const active = [...new Set(weightedFor(d))];
-    c = active[(active.indexOf(c) + 3) % active.length];
+  if (prev.getDay() >= 1 && prev.getDay() <= 5 && !themeWeekFor(prev) === !theme) {
+    const pr = colorForDate(prev);
+    if (!pr.holiday && !pr.isFlannel && !pr.isPink && pr.shade.name === c.label) {
+      const active = [...new Set(weightedFor(d))];
+      const step = active.length > 4 ? 3 : 1;
+      c = active[(active.indexOf(c) + step) % active.length];
+    }
   }
-  return {
-    weekend:false, day, sign, moon, isPink:false, holiday:null,
-    shade:{name:c.label, hex:c.hex},
-    family:{label:c.label, qualifies:c.qualifies}
-  };
+  return pick(c, {});
 }
 
 //  Next workday after a given date (skips weekends)
@@ -530,10 +610,12 @@ function renderHero(date) {
   const sw = el("swatch");
   sw.style.background = r.shade.hex;
   sw.style.color = fg;
+  document.body.dataset.season = seasonOf(date);
   const isToday = date.toDateString() === new Date().toDateString();
   el("swEyebrow").textContent = r.weekend ? "Weekend" : (isToday ? "Today" : fmt(date));
   el("swName").textContent = r.shade.name;
   el("swHex").textContent = r.shade.hex.toUpperCase();
+  el("swTeam").textContent = r.team ? r.team : "";
   el("swTag").textContent = r.weekend
     ? "wear whatever — recharge your palette"
     : r.holiday
@@ -541,11 +623,24 @@ function renderHero(date) {
       : r.day.name + " · " + r.day.planet + " · " + r.sign.sym + " " + r.sign.name + " · " + r.moon.emoji + " " + r.moon.name
         + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Day!" : "");
 
+  // Theme-week banner — shows during the week, and the week before as a heads-up
+  const banner = el("themeBanner");
+  const upcoming = themeWeekFor(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7));
+  if (r.theme) {
+    banner.innerHTML = `<span class="t-emoji">${r.theme.emoji}</span><b>${r.theme.name}</b><span class="t-note">${r.theme.note}</span>`;
+    banner.className = "theme-banner on";
+  } else if (upcoming && !r.weekend) {
+    banner.innerHTML = `<span class="t-emoji">${upcoming.emoji}</span><b>Next week: ${upcoming.name}</b><span class="t-note">${upcoming.colors.join(" · ")}</span>`;
+    banner.className = "theme-banner soon";
+  } else {
+    banner.className = "theme-banner";
+  }
+
   // Tomorrow whisper — next workday's color, for planning
   const nxt = nextWorkday(date);
   const nr = colorForDate(nxt);
   const nxtLabel = nxt.toLocaleDateString(undefined, { weekday:"long" });
-  el("swTomorrow").textContent = nxtLabel + ": " + nr.shade.name + (nr.holiday ? " " + nr.holiday.emoji : nr.isFlannel ? " 🍂" : "");
+  el("swTomorrow").textContent = nxtLabel + ": " + nr.shade.name + (nr.holiday ? " " + nr.holiday.emoji : nr.isFlannel ? " 🍂" : nr.theme && !r.theme ? " " + nr.theme.emoji : "");
 
   const q = el("qualifies");
   if (r.weekend) {
@@ -554,18 +649,26 @@ function renderHero(date) {
     q.innerHTML = r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>. Holidays overrule the sky!";
   } else if (r.isFlannel) {
     q.innerHTML = "🍂 <b>Flannel Day</b> — <i>" + r.family.qualifies + "</i>. Cold out. Cozy up.";
+  } else if (r.theme) {
+    q.innerHTML = r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>.";
   } else {
     q.innerHTML = "<b>" + r.family.label + "</b> today — any shade counts: <i>" + r.family.qualifies + "</i>. Do your best!";
   }
 
   // Why chips — with a voice
   const why = el("why");
-  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : "sun · moon · day";
+  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : "sun · moon · day";
+  const blendVoice = r.weekend ? "No rules on the weekend."
+    : r.holiday ? r.holiday.note
+    : r.theme ? "This week the sky picks from " + r.theme.colors.length + " colors only."
+    : r.isFlannel ? "Any flannel counts — the color is yours. Today you're " + r.team + "."
+    : r.isPink ? "A rare one — the sky rolled pink. Today you're " + r.team + "."
+    : "Three sky-readings, one color. Today you're " + r.team + ".";
   const rows = [
     { icon: r.day.sym,    label:"Day",   value: r.day.name + " · " + r.day.planet, voice: PLANET_VOICE[r.day.planet] || "" },
     { icon: r.sign.sym,   label:"Sun",   value: r.sign.name + " · " + ELEMENTS[r.sign.el].name, voice: SIGN_VOICE[r.sign.name] || "" },
     { icon: r.moon.emoji, label:"Moon",  value: r.moon.name, voice: MOON_VOICE[r.moon.name] || "" },
-    { icon: "✨",         label:"Blend", value: blendValue, voice: r.holiday ? r.holiday.note : r.isFlannel ? "Jasmin's idea. Any flannel counts — the color is yours." : r.isPink ? "A rare one — the sky rolled pink today." : r.weekend ? "No rules on the weekend." : "Three sky-readings hashed into one color." },
+    { icon: "✨",         label:"Blend", value: blendValue, voice: blendVoice },
   ];
   why.innerHTML = rows.map(row => `
     <div class="why-chip">
@@ -623,6 +726,7 @@ function renderMonth() {
       <div class="num">${d}</div>
       <div class="bar" style="background:${r.shade.hex}"></div>
       <div class="cn">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name)}</div>`;
+    if (r.theme && !r.weekend) cell.classList.add("themed");
     cell.onclick = () => { selected = dt; renderAll(); };
     grid.appendChild(cell);
   }
