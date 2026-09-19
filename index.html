@@ -118,7 +118,6 @@
   .link-btn:hover { color: var(--gold); }
   .loc-msg { font-size: 12px; color: var(--gold); min-height: 16px; margin-top: 8px; }
   .loc-current .muted { color: var(--muted); font-weight: 400; }
-  .why-chip .voice a { color: var(--green); }
   .brand-region { color: var(--muted); font-weight: 500; letter-spacing: 0.3px; }
   .welcome-card { text-align: center; padding-top: 22px; }
   .welcome-card .ornament { color: var(--gold); font-size: 11px; letter-spacing: 6px; margin-bottom: 6px; }
@@ -234,7 +233,6 @@
   }
   .qualifies b { font-weight: 700; }
   .qualifies .easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
-  .qualifies .flannel-note { display: block; margin-top: 6px; color: var(--day-ink); font-weight: 500; }
 
   /* ------------------------------------------------ Week strip */
   .week { display: flex; gap: 6px; }
@@ -252,20 +250,23 @@
   .day .cname { font-size: 9.5px; font-weight: 600; line-height: 1.1; }
   .day.offduty .sw, .day.offduty .cname { opacity: 0.72; }
 
-  /* ------------------------------------------------ Why chips (2x2) */
-  .why { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .why-chip {
-    background: linear-gradient(160deg, rgba(var(--day-rgb), 0.24), rgba(var(--day-rgb), 0.08) 70%), var(--card);
-    border: 1px solid rgba(var(--day-rgb), 0.30);
-    border-radius: 11px;
-    padding: 10px 12px;
-    display: flex; flex-direction: column; gap: 2px; min-width: 0;
-    transition: background 0.5s ease, border-color 0.5s ease;
+  /* ------------------------------------------------ Verse */
+  .verse {
+    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-size: 19px; line-height: 1.45; color: var(--ink);
+    white-space: pre-line; text-align: center; padding: 14px 10px 6px;
+    text-wrap: balance;
   }
-  .why-chip .icon { font-size: 17px; line-height: 1; }
-  .why-chip .label { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--day-ink); font-weight: 700; margin-top: 5px; opacity: 0.85; }
-  .why-chip .value { font-family: "Playfair Display", Georgia, serif; font-size: 14px; font-weight: 600; line-height: 1.15; color: var(--ink); }
-  .why-chip .voice { font-size: 10.5px; color: var(--muted); line-height: 1.35; margin-top: 4px; font-style: italic; }
+  .verse-tail {
+    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-size: 13.5px; color: var(--day-ink); text-align: center; opacity: 0.9;
+  }
+  .verse-tail:empty { display: none; }
+  .verse-wx {
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(var(--day-rgb), 0.25);
+    font-size: 11px; color: var(--muted); text-align: center; letter-spacing: 0.2px;
+  }
+  .verse-wx a { color: var(--green); }
 
   /* ------------------------------------------------ Month grid */
   .month-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -348,8 +349,10 @@
 
     <div class="col">
       <div class="panel">
-        <h2>Why this color</h2>
-        <div class="why" id="why"></div>
+        <h2>Today</h2>
+        <div class="verse" id="verse"></div>
+        <div class="verse-tail" id="verseTail"></div>
+        <div class="verse-wx" id="verseWx"></div>
       </div>
       <div class="panel">
         <div class="month-bar">
@@ -507,14 +510,125 @@ function seasonOf(d) { // coarse, for CSS tint
   const m = d.getMonth() + 1;
   return m <= 2 || m === 12 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
 }
-//  Daylight hours — a small, real, nature fact for the Season chip.
-//  Uses the stored latitude (default 45°N) and the standard declination formula.
-function daylightHours(d, lat) {
-  const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-  const decl = 23.44 * Math.sin((2 * Math.PI / 365) * (doy - 81)) * Math.PI / 180;
-  const phi = lat * Math.PI / 180;
-  const x = Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(decl)));
-  return 24 * Math.acos(x) / Math.PI;
+// ---------------------------------------------------------------
+//  Verses — one short poem per day, in place of an explanation.
+//  Hand-written, keyed by color × season, with a few variants each so a color
+//  doesn't always say the same thing. Picked deterministically by date, so every
+//  phone reads the same line. Nature-forward, an occasional wink.
+//  Flannel, holidays, and theme weeks add or swap a line.
+// ---------------------------------------------------------------
+const VERSES = {
+  Purple: {
+    winter: ["Purple. The color of the last light\nbefore the streetlamps take over.", "Frost on the window, plum in the sky.\nWear a little of the evening."],
+    spring: ["Crocus. Lilac. The first purple\nis always a surprise, even to the ground.", "Purple today — the shade of things\nthat bloomed before they were asked."],
+    summer: ["Thunderheads at six o'clock, violet at the edges.\nSomething's coming. Dress for it.", "Lavender in the heat. Purple,\nthe cool side of a warm day."],
+    autumn: ["Asters along the fence, the last ones.\nPurple, and unhurried about it.", "Purple. The sky does this at dusk\nwhen it thinks nobody's looking."],
+  },
+  Red: {
+    winter: ["Red against the snow. A cardinal\nknows exactly what it's doing.", "The color of the one warm thing\nin a cold room. Be that."],
+    spring: ["Tulips, all at once, as if on a signal.\nRed today. Go ahead and be obvious.", "Red. The robin's chest, the first\nloud thing the year has said."],
+    summer: ["Ripe. That's the whole note.\nRed, and no apology.", "Red — the color the sun turns\nright before it lets go of the day."],
+    autumn: ["The maples went first, as they always do.\nRed today. Burn a little.", "Red. Whatever the year did,\nit's saying it out loud now."],
+  },
+  Blue: {
+    winter: ["The lake has gone to glass.\nBlue, the color of holding still.", "Blue shadow on white snow —\nthe coldest color, and the calmest."],
+    spring: ["Sky, finally, after all that grey.\nBlue today. Look up more than usual.", "Blue. The color of the first day\nyou leave the coat at home."],
+    summer: ["Lake blue. Sky blue. The line between them\ngone soft in the heat.", "Blue today — deep water,\nand the good sense to float."],
+    autumn: ["A high, thin, cold blue.\nThe sky's version of a clean desk.", "Blue. The geese know the way;\nyou only have to pick a shirt."],
+  },
+  Green: {
+    winter: ["Green. The pines are the only ones\nstill saying yes.", "Under the snow, everything green\nis waiting. Wear the wait."],
+    spring: ["Green today — the new kind,\nthe kind that hasn't learned to be careful.", "Every leaf is a small announcement.\nGreen. Make yours."],
+    summer: ["Full canopy. Shade you can lean on.\nGreen, and generous with it.", "Green today. The color the whole world\nsettles into when it's sure of itself."],
+    autumn: ["The last green holds the fence line\nwhile everything else lets go.", "Green. Evergreen, actually —\nthe one that doesn't take the season personally."],
+  },
+  Brown: {
+    winter: ["Bare branches, dark earth, a cup of something.\nBrown. The color of enough.", "Brown today. The ground holds everything up\nand asks for nothing."],
+    spring: ["Mud season. Brown, honestly.\nThe most alive color there is right now.", "Brown — the soil before the seed.\nAll the potential, none of the noise."],
+    summer: ["Bark, dust, the warm side of a fence.\nBrown, sun-baked and steady.", "Brown today. Ground yourself;\nthe sky's got enough going on."],
+    autumn: ["Acorns, oak leaves, the good dirt.\nBrown, and exactly in season.", "Brown. The whole year\nsettling into the earth for a while."],
+  },
+  Grey: {
+    winter: ["Grey. The sky and the lake agreed\nto match today. So can you.", "A soft grey morning. Nothing is asking\nanything of you. Dress like it."],
+    spring: ["Grey today — rain-light, gentle.\nThe color that lets the green show off.", "Grey. Nobody will notice,\nwhich is the point."],
+    summer: ["Fog off the water, gone by nine.\nGrey, cool, and briefly mysterious.", "Grey today. A rest note\nin a loud season."],
+    autumn: ["Stone, slate, a low sky.\nGrey — the color of paying attention.", "Grey. Let the leaves do the talking\nfor once."],
+  },
+  White: {
+    winter: ["White. The whole world went quiet\nand asked you to match.", "Fresh snow, no footprints yet.\nWhite today. Start clean."],
+    spring: ["Apple blossom. White, briefly,\nand all the better for it.", "White — the color of a page\nnobody's written on yet."],
+    summer: ["High clouds, white sails, linen.\nWhite: the coolest thing in the sun.", "White today. Reflect a little;\nthe sun's doing the rest."],
+    autumn: ["First frost on the grass.\nWhite, quiet, gone by noon.", "White. The color of breath\non the first cold morning."],
+  },
+  Black: {
+    winter: ["Black. Long nights, good coats,\nand nothing to prove.", "The dark comes early and stays.\nBlack today — meet it well-dressed."],
+    spring: ["Black today. Wet earth, crow on the wire.\nThe season's sharpest contrast.", "Black — the color that makes\nevery other color look like spring."],
+    summer: ["Black in July. Bold. Cool shade,\nwarm pavement. Own it.", "Black today. The color of the pause\nbetween the fireworks."],
+    autumn: ["Bare branches on a white sky.\nBlack, elegant, inevitable.", "Black. The color the year\nwears to the end of the party."],
+  },
+  Yellow: {
+    winter: ["Yellow. A lit window on a dark street.\nBe the one that's home.", "Yellow today — out of season,\nand exactly what the season needs."],
+    spring: ["Forsythia, daffodil, the first warm hour.\nYellow. The year said go.", "Yellow today. The color of\nfinally."],
+    summer: ["Yellow. High noon, no shadow,\nnothing to hide.", "Sunflowers face the light all day.\nYellow — do the same."],
+    autumn: ["Aspens, gold and shaking.\nYellow, before it lets go.", "Yellow today. The last warm light\nbefore the year turns down the lamp."],
+  },
+  Teal: {
+    winter: ["Teal. The color under the ice,\nwhere the water keeps moving.", "Teal today — cold water, deep enough\nto have a second color."],
+    spring: ["Teal. The lake, thawed, catching its breath.\nSomewhere between blue and alive.", "Teal today. The color the sky makes\nwhen it leans toward the trees."],
+    summer: ["Teal — deep water, warm air.\nThe color of the good swimming hole.", "Teal today. Where the lake\nstops being blue and starts being cool."],
+    autumn: ["Teal. The last warm water,\nthe first cold light.", "Teal today — a color that hasn't decided\nwhich season it's in. Same."],
+  },
+  Coral: {
+    winter: ["Coral. Sunrise over snow,\nfor about four minutes. Catch it.", "Coral today — the warmest thing\nin the coldest month."],
+    spring: ["Coral. Tulips, sunsets, cheeks.\nThe color of blood coming back.", "Coral today. Spring's version\nof a wink."],
+    summer: ["Coral — the sky at the hour\nwhen everyone puts down their phone.", "Coral today. Warm, bright,\nand not the least bit sorry."],
+    autumn: ["Coral. The leaves went orange,\nthen thought better of it.", "Coral today — the soft end\nof a bright season."],
+  },
+  Sage: {
+    winter: ["Sage. Dried, hung in a kitchen,\nremembering summer for you.", "Sage today — the grey-green\nof a pine in fog."],
+    spring: ["Sage. New leaves that haven't\ncommitted to green yet.", "Sage today. Soft, quiet, herbal —\nthe color of a garden waking up."],
+    summer: ["Sage in the heat. Silver-green,\nthe color that keeps its cool.", "Sage today — dusty leaves,\nlong afternoons, no rush."],
+    autumn: ["Sage. The garden's last soft color\nbefore the frost edits everything.", "Sage today. Faded green,\nand wiser for it."],
+  },
+  Burgundy: {
+    winter: ["Burgundy. Wine, wool, a good chair.\nThe color of staying in.", "Burgundy today — deep red\nwith the fire turned down."],
+    spring: ["Burgundy. New maple leaves\ncome out this color, before green.", "Burgundy today. Dark, warm,\na little unexpected for April."],
+    summer: ["Burgundy — the color of cherries\nleft too long, on purpose.", "Burgundy today. Deep shade\non a bright day."],
+    autumn: ["Burgundy. The oaks turn last,\nand they turn this.", "Burgundy today — the color\nautumn saves for the end."],
+  },
+  Plum: {
+    winter: ["Plum. The sky at 4:45,\nright after the light gives up.", "Plum today — winter's deepest\nsoft color."],
+    spring: ["Plum. Dusk comes later now,\nbut it still comes this color.", "Plum today. The shadow side\nof a bright season."],
+    summer: ["Plum — the fruit, heavy on the branch.\nThe color of almost too much.", "Plum today. Late, warm,\nand sweeter than it looks."],
+    autumn: ["Plum. The last berries,\nthe first long dusk.", "Plum today — the color the sky\nturns when it's finished with orange."],
+  },
+  Pink: {
+    winter: ["Pink. Dawn on the snowbank,\nbriefly, for the early risers.", "Pink today — cold cheeks,\nwarm hands, the color of coming inside."],
+    spring: ["Pink. The crabapples went off\nlike a rumor. Join in.", "Pink today. Petal, blush, the soft\nnew skin of the season."],
+    summer: ["Pink — the sky at nine p.m.,\nstill not ready to quit.", "Pink today. Rose, peony,\nthe color of plenty."],
+    autumn: ["Pink. Dusty rose, a late bloom,\nnot fooled by the calendar.", "Pink today — the sunset's\nlast soft word."],
+  },
+  Orange: {
+    autumn: ["Orange. Pumpkins on the step,\nleaves in the gutter. Lean in.", "Orange today — the whole month\nagreed on this one."],
+  },
+};
+//  Small additions, one line each
+const FLANNEL_LINES = ["And a flannel over it, if you've got one.", "Flannel over the top wouldn't hurt.", "Add a flannel. It's that kind of day."];
+const WEEKEND_LINES = ["Or don't. It's the weekend.", "No one's checking. Wear it anyway.", "Off-duty. The color's just here if you want it."];
+//  The verse for a day: color x coarse season, variant chosen by date. Holidays and
+//  theme weeks get their own line up top; flannel and weekends add a soft tail.
+function verseFor(d, r) {
+  const bank = VERSES[r.shade.name] || {};
+  const pool = bank[seasonOf(d)] || Object.values(bank).flat();
+  // Independent roll: re-hash the seed so the variant doesn't correlate with the color pick.
+  const roll = hash32(hash32(daySeed(d) ^ 0x7E55E) + 0x9E37);
+  const pick = arr => arr[roll % arr.length];
+  const lines = [];
+  if (r.holiday) lines.push(r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note + ".");
+  else if (r.theme) lines.push(r.theme.emoji + " " + r.theme.name + ". " + r.theme.note + ".");
+  if (pool.length) lines.push(pick(pool));
+  const tail = r.isFlannel ? pick(FLANNEL_LINES) : r.weekend ? pick(WEEKEND_LINES) : null;
+  return { body: lines.join("\n"), tail };
 }
 
 // ---------------------------------------------------------------
@@ -638,18 +752,8 @@ function holidayFor(d) {
 }
 
 // ---------------------------------------------------------------
-//  Moon — kept. Genuinely astronomical, and people like it.
+//  Moon — kept for the hero tagline. Genuinely astronomical, and people like it.
 // ---------------------------------------------------------------
-const MOON_VOICE = {
-  "New Moon":        "New moon: fresh starts, quiet confidence.",
-  "Waxing Crescent": "Waxing crescent: things are building. So are you.",
-  "First Quarter":   "First quarter: halfway lit, fully committed.",
-  "Waxing Gibbous":  "Waxing gibbous: almost there — lean in.",
-  "Full Moon":       "Full moon: everything's brighter tonight, including you.",
-  "Waning Gibbous":  "Waning gibbous: gratitude phase. Wear it easy.",
-  "Last Quarter":    "Last quarter: let go of what's not working.",
-  "Waning Crescent": "Waning crescent: rest up, the cycle turns again soon.",
-};
 function getMoon(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const synodic = 29.53058867, knownNew = Date.UTC(2000, 0, 6, 18, 14, 0);
@@ -829,31 +933,18 @@ function renderHero(date) {
     : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
     : r.weekend ? "<b>" + r.family.label + "</b> if you feel like it — " + shades + ". It's the weekend; the color's just here if you want it."
     : "<b>" + r.family.label + "</b> today — any shade counts: " + shades + ".")
-    + (r.isFlannel ? " <span class=\"flannel-note\">🍂 And if you've got a flannel, today's a good day for it — any color, over the top.</span>" : "")
     + ` <span class="easy">${easyLine(date)}</span>`;
 
-  // Why chips: Season · Weather · Moon · Blend
+  // The verse — one short poem in place of an explanation. Weather keeps one quiet line
+  // beneath it: Universal (no zip) · Seasonal (zip set, forecast pending) · the forecast.
+  const v = verseFor(new Date(date.getFullYear(), date.getMonth(), date.getDate()), r);
+  el("verse").textContent = v.body;
+  el("verseTail").textContent = v.tail || "";
   const reg = regionInfo(getRegion());
-  const hours = daylightHours(date, reg ? reg.lat : 45);
-  const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
-  // Weather chip describes the COLOR, never the fetch: Universal (no zip) · Seasonal (zip set,
-  // forecast not in yet — today ran on the season alone) · the forecast itself once it's in.
-  const wxChip = r.wx
-    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Shared with everyone in " + reg.label + "." }
-    : reg
-      ? { icon:"🌤️", label:"Weather", value:"Seasonal", voice: reg.label + " · today runs on the season. Tomorrow's forecast arrives this evening." }
-      : { icon:"📍", label:"Weather", value:"Universal", voice:"Same color everywhere. <a href='#' id='setLocLink'>Add your zip</a> to share the weather with everyone nearby." };
-  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.wx ? "season × weather" : "season";
-  const blendVoice = (r.holiday ? r.holiday.note
-    : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
-    : (r.wx ? "The season sets the odds, the sky tilts them. " : "The season sets the odds. ") + "Today you're " + r.team + ".")
-    + (r.isFlannel ? " 🍂 Flannel-friendly." : "");
-  el("why").innerHTML = [
-    { icon: r.season.emoji, label:"Season",  value: r.season.name + " · " + hh + "h " + String(mm).padStart(2,"0") + "m light", voice: r.season.voice },
-    wxChip,
-    { icon: r.moon.emoji,   label:"Moon",    value: r.moon.name, voice: MOON_VOICE[r.moon.name] },
-    { icon:"✨",            label:"Blend",   value: blendValue, voice: blendVoice },
-  ].map(row => `<div class="why-chip"><div class="icon">${row.icon}</div><div class="label">${row.label}</div><div class="value">${row.value}</div><div class="voice">${row.voice}</div></div>`).join("");
+  el("verseWx").innerHTML = r.wx
+    ? MOOD[r.wx.mood].emoji + " " + MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "° · shared with " + reg.label
+    : reg ? "🌤️ Seasonal · " + reg.label + " · tomorrow's forecast arrives this evening"
+    : "📍 Universal · <a href='#' id='setLocLink'>add your zip</a> to share the weather with everyone nearby";
   const link = el("setLocLink"); if (link) link.onclick = e => { e.preventDefault(); openSettings(); };
 }
 
