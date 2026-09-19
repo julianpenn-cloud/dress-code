@@ -322,23 +322,43 @@
 </head>
 <body>
 
-<!-- Logo: a stained-glass roundel (same motif as the app icon), defined once and reused -->
+<!-- Logo: draped cloth in a roundel — four folds of fabric in the core palette, each shaded like
+     cloth catching light, gathered at the shoulder. Defined once, reused in header/footer/welcome
+     and rasterized for the app icon. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <!-- fold shading: a rounded cylinder — dark edge, bright ridge, deep crease -->
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"    stop-color="#000" stop-opacity="0.35"/>
+      <stop offset="0.18" stop-color="#000" stop-opacity="0.00"/>
+      <stop offset="0.42" stop-color="#fff" stop-opacity="0.42"/>
+      <stop offset="0.62" stop-color="#fff" stop-opacity="0.00"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.50"/>
+    </linearGradient>
+    <clipPath id="roundel"><circle cx="32" cy="32" r="29"/></clipPath>
     <symbol id="toga-mark" viewBox="0 0 64 64">
-      <!-- four panes of the core palette, leaded; a gold ring; a serif T cut from the centre -->
       <circle cx="32" cy="32" r="30" fill="#22301f"/>
-      <path d="M32 32 L32 4 A28 28 0 0 1 60 32 Z" fill="#C4453A"/>
-      <path d="M32 32 L60 32 A28 28 0 0 1 32 60 Z" fill="#3A6FA8"/>
-      <path d="M32 32 L32 60 A28 28 0 0 1 4 32 Z" fill="#E3B23C"/>
-      <path d="M32 32 L4 32 A28 28 0 0 1 32 4 Z" fill="#4E8A5A"/>
-      <circle cx="32" cy="32" r="28" fill="none" stroke="#22301f" stroke-width="2"/>
-      <path d="M32 4 V60 M4 32 H60" stroke="#22301f" stroke-width="2"/>
+      <g clip-path="url(#roundel)">
+        <!-- four hanging folds: gathered at the shoulder, each swaying softly as it falls -->
+        <path d="M4 32 C6 20 14 14 24 12 C22 28 26 44 22 64 L-2 64 Z" fill="#4E8A5A"/>
+        <path d="M4 32 C6 20 14 14 24 12 C22 28 26 44 22 64 L-2 64 Z" fill="url(#fold)"/>
+        <path d="M20 12 C24 8 30 6 36 8 C33 26 38 44 36 64 L16 64 C20 46 18 28 20 12 Z" fill="#E3B23C"/>
+        <path d="M20 12 C24 8 30 6 36 8 C33 26 38 44 36 64 L16 64 C20 46 18 28 20 12 Z" fill="url(#fold)"/>
+        <path d="M34 8 C40 6 46 8 50 14 C50 30 46 46 52 64 L32 64 C34 46 30 28 34 8 Z" fill="#C4453A"/>
+        <path d="M34 8 C40 6 46 8 50 14 C50 30 46 46 52 64 L32 64 C34 46 30 28 34 8 Z" fill="url(#fold)"/>
+        <path d="M48 12 C54 16 60 22 62 32 L68 64 L48 64 C46 46 52 28 48 12 Z" fill="#3A6FA8"/>
+        <path d="M48 12 C54 16 60 22 62 32 L68 64 L48 64 C46 46 52 28 48 12 Z" fill="url(#fold)"/>
+        <!-- the gather: a knot of cloth at the shoulder where the folds meet -->
+        <path d="M21 10 C27 3 41 3 47 10 C41 15 27 15 21 10 Z" fill="#f7f3ea"/>
+        <path d="M21 10 C27 3 41 3 47 10 C41 15 27 15 21 10 Z" fill="url(#fold)" opacity="0.7"/>
+        <path d="M27 9 C31 7 37 7 41 9" stroke="#22301f" stroke-width="0.9" opacity="0.5" fill="none"/>
+        <!-- crease lines between folds, following the sway -->
+        <path d="M24 12 C22 28 26 44 22 64 M36 8 C33 26 38 44 36 64 M50 14 C50 30 46 46 52 64" stroke="#22301f" stroke-width="1.2" opacity="0.55" fill="none"/>
+        <!-- soft top light, and the cloth's own shadow pooling at the bottom -->
+        <ellipse cx="30" cy="20" rx="22" ry="12" fill="#fff" opacity="0.10"/>
+        <ellipse cx="32" cy="66" rx="34" ry="14" fill="#000" opacity="0.28"/>
+      </g>
       <circle cx="32" cy="32" r="30" fill="none" stroke="#b3862f" stroke-width="2.5"/>
-      <!-- light behind the glass -->
-      <circle cx="24" cy="22" r="14" fill="#fff" opacity="0.16"/>
-      <!-- the T -->
-      <path d="M18 19 H46 V25 H35.5 V47 H28.5 V25 H18 Z" fill="#f7f3ea" stroke="#22301f" stroke-width="1.6" stroke-linejoin="round"/>
     </symbol>
   </defs>
 </svg>
@@ -404,7 +424,7 @@
   <footer>
     <svg class="mark-sm" aria-hidden="true"><use href="#toga-mark"/></svg>
     <div class="brand">Toga</div>
-    <div class="fine">In Rome, the color of your toga said who you were. Toga just makes the morning easier — every day, always optional. · ❄️ 🌱 ☀️ 🍂 ☾</div>
+    <div class="fine">One color a day. Wear it if it's easy. · ❄️ 🌱 ☀️ 🍂 ☾</div>
   </footer>
 </div>
 
@@ -471,10 +491,10 @@ const PALETTE = [
   { label:"Black",    hex:"#2E2E2E", team:"The Night Watch",  curve:[4, 3, 3, 2, 1, 1, 1, 1, 2, 3, 3, 4], temp:"neutral", tone:"dark",  qualifies:"charcoal, graphite, onyx, dark grey" },
   { label:"Brown",    hex:"#7A5230", team:"The Terra Firma",  curve:[3, 3, 2, 1, 1, 1, 1, 1, 3, 4, 4, 3], temp:"warm",    tone:"dark",  qualifies:"tan, camel, khaki, chocolate, taupe, chestnut" },
   { label:"Blue",     hex:"#3A6FA8", team:"The Tide",         curve:[2, 2, 3, 3, 3, 4, 4, 4, 3, 2, 2, 2], temp:"cool",    tone:"mid",   qualifies:"navy, sky, steel, denim, powder, cobalt" },
-  { label:"Red",      hex:"#C4453A", team:"The Legion",       curve:[2, 3, 2, 2, 2, 3, 3, 3, 3, 3, 2, 3], temp:"warm",    tone:"mid",   qualifies:"brick, scarlet, cherry, crimson, tomato" },
+  { label:"Red",      hex:"#C4453A", team:"The Ember",        curve:[2, 3, 2, 2, 2, 3, 3, 3, 3, 3, 2, 3], temp:"warm",    tone:"mid",   qualifies:"brick, scarlet, cherry, crimson, tomato" },
   { label:"Green",    hex:"#4E8A5A", team:"The Laurel",       curve:[1, 1, 2, 3, 4, 3, 3, 3, 3, 3, 2, 2], temp:"cool",    tone:"mid",   qualifies:"olive, forest, emerald, moss, pine, kelly" },
-  { label:"Purple",   hex:"#8E63C4", team:"The Senate",       curve:[2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2], temp:"cool",    tone:"mid",   qualifies:"lilac, lavender, orchid, mauve, violet, grape" },
-  { label:"Yellow",   hex:"#E3B23C", team:"The Sol Invictus", curve:[0, 0, 1, 2, 3, 3, 3, 3, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"mustard, gold, butter, lemon, marigold, honey" },
+  { label:"Purple",   hex:"#8E63C4", team:"The Heather",      curve:[2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2], temp:"cool",    tone:"mid",   qualifies:"lilac, lavender, orchid, mauve, violet, grape" },
+  { label:"Yellow",   hex:"#E3B23C", team:"The Sunrise Club", curve:[0, 0, 1, 2, 3, 3, 3, 3, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"mustard, gold, butter, lemon, marigold, honey" },
   // --- the new ones: seasonal by nature, so no single day is crowded ---
   { label:"Teal",     hex:"#2E8B8B", team:"The Harbor",       curve:[0, 0, 1, 2, 3, 3, 3, 3, 2, 1, 0, 0], temp:"cool",    tone:"mid",   qualifies:"teal, turquoise, aqua, seafoam, peacock, lagoon" },
   { label:"Coral",    hex:"#E07A5F", team:"The Reef",         curve:[0, 0, 0, 1, 2, 3, 3, 3, 1, 0, 0, 0], temp:"warm",    tone:"light", qualifies:"coral, salmon, peach, apricot, melon, terracotta" },
