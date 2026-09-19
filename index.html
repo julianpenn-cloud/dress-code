@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Toga · a color a day, chosen by the season</title>
-<meta name="description" content="Toga picks one simple color each workday from the season and the weather — so your whole team coordinates without a group chat.">
+<title>Toga · one less decision, every morning</title>
+<meta name="description" content="Toga suggests one simple color a day, drawn from the season and the weather. Wear it or don’t — it’s a nudge, not a uniform. One less decision every morning.">
 <meta property="og:title" content="Toga">
-<meta property="og:description" content="A color a day, chosen by the season. Coordinate outfits with your team — no group chat required.">
+<meta property="og:description" content="One color a day, chosen by the season. Optional, always. One less decision every morning.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -192,6 +192,7 @@
     border-radius: 12px; padding: 12px 15px; font-size: 13px;
   }
   .qualifies b { font-weight: 700; }
+  .qualifies .easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
 
   /* ------------------------------------------------ Week strip */
   .week { display: flex; gap: 6px; }
@@ -206,7 +207,7 @@
   .day .dow { font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
   .day .sw { width: 100%; height: 26px; border-radius: 7px; margin: 5px 0 4px; box-shadow: inset 0 0 0 1.5px rgba(34,48,31,0.18); }
   .day .cname { font-size: 9.5px; font-weight: 600; line-height: 1.1; }
-  .day.free .sw { background: repeating-linear-gradient(45deg, #ece5d4, #ece5d4 4px, #e4dcc8 4px, #e4dcc8 8px); }
+  .day.offduty .sw, .day.offduty .cname { opacity: 0.72; }
 
   /* ------------------------------------------------ Why chips (2x2) */
   .why { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -249,8 +250,8 @@
   .mcell .bar { width: 100%; height: 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(34,48,31,0.18); }
   .mcell .cn { font-size: 7px; font-weight: 600; color: var(--muted); line-height: 1; text-align: center; }
   .mcell.blank { background: transparent; border: none; cursor: default; }
-  .mcell.free { background: var(--paper); border-style: dashed; }
-  .mcell.free .bar { background: transparent !important; }
+  .mcell.offduty { background: var(--paper); }
+  .mcell.offduty .bar, .mcell.offduty .cn { opacity: 0.72; }
   .mcell.selected { outline: 2px solid var(--gold); outline-offset: -1px; }
   .mcell.today { box-shadow: 0 0 0 2px var(--green) inset; }
   .mcell.themed { background: linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card); }
@@ -267,7 +268,7 @@
   <div>
     <div class="brand">Toga</div>
     <h1>Optional Dress Code</h1>
-    <div class="sub">a color a day, chosen by the season</div>
+    <div class="sub">one color a day · wear it if it's easy</div>
   </div>
   <div class="hdr-actions">
     <button class="today-btn icon-btn" id="settingsBtn" aria-label="Settings" title="Location & weather">⚙</button>
@@ -319,7 +320,7 @@
   <footer>
     <div class="ornament">✦ ✦ ✦</div>
     <div class="brand">Toga</div>
-    <div class="fine">In Rome, the color of your toga said who you were. Now the season decides. · ❄️ 🌱 ☀️ 🍂 ☾</div>
+    <div class="fine">In Rome, the color of your toga said who you were. Toga just makes the morning easier — every day, always optional. · ❄️ 🌱 ☀️ 🍂 ☾</div>
   </footer>
 </div>
 
@@ -330,7 +331,7 @@
       <h3 id="sheetTitle">Weather</h3>
       <button class="nav-btn" id="settingsClose" aria-label="Close">×</button>
     </div>
-    <p class="sheet-p">Toga can let tomorrow's forecast gently tilt the odds — sunny days lean warm, grey days lean cool. The forecast <b>locks each evening after 6pm</b>, so what you see tonight is what you wear tomorrow. No last-minute switches.</p>
+    <p class="sheet-p">If you like, Toga can let tomorrow's forecast gently tilt the odds — sunny days lean warm, grey days lean cool. The forecast <b>locks each evening after 6pm</b>, so what you see tonight is what you'll see tomorrow. No morning surprises. And like everything here, it's optional.</p>
     <div class="loc-current" id="locCurrent"></div>
     <div class="loc-row">
       <input id="locInput" type="text" placeholder="City, e.g. Minneapolis" autocomplete="off">
@@ -485,15 +486,15 @@ function weatherFor(d) {
 }
 
 //  The lock rule, kept strict so there are never same-morning surprises:
-//  a forecast only counts if it was locked the evening before (after 6pm) for the
-//  next workday. Mornings never fetch. If nothing was locked, the day runs on
+//  a forecast only counts if it was locked the evening before (after 6pm) for
+//  tomorrow. Mornings never fetch. If nothing was locked, the day runs on
 //  pure seasonal drift. Silent on any failure.
 async function refreshWeather() {
   const loc = getLoc();
   if (!loc) return;
   const now = new Date();
   if (now.getHours() < 18) return;                 // evenings only
-  const target = nextWorkday(now);                 // Fri/Sat/Sun evenings all lock Monday
+  const target = tomorrowOf(now);
   const have = loadJSON(WX_KEY);
   if (have && have.ymd === ymd(target)) return;    // already locked
   try {
@@ -617,17 +618,15 @@ function pickColor(d, wx) {
 }
 
 // ---------------------------------------------------------------
-//  Core: resolve a date to a color
+//  Core: resolve a date to a color. Every day gets one — weekends included.
+//  It's all optional anyway; the weekend flag only softens the tone.
 // ---------------------------------------------------------------
 function colorForDate(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dow = d.getDay();
   const moon = getMoon(d), season = seasonFor(d), theme = themeWeekFor(d), wx = weatherFor(d);
-  const base = { weekend:false, dow, dayName:DAYS[dow], moon, season, theme, wx, isPink:false, isFlannel:false, holiday:null };
+  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isPink:false, isFlannel:false, holiday:null };
   const pick = (c, extra) => ({ ...base, ...extra, shade:{name:c.label, hex:c.hex}, team:c.team, family:{label:c.label, qualifies:c.qualifies} });
-
-  if (dow === 0 || dow === 6)
-    return { ...base, weekend:true, team:null, shade:{name:"Free day", hex:"#d3d5da"}, family:{label:"Weekend", qualifies:"wear whatever — recharge your palette"} };
 
   const hol = holidayFor(d);
   if (hol) return pick(hol.color, { holiday:hol });
@@ -638,10 +637,10 @@ function colorForDate(date) {
   }
 
   let c = pickColor(d, wx);
-  // No two workdays in a row on the same color. Compare to yesterday's *final* color and
+  // No two days in a row on the same color. Compare to yesterday's *final* color and
   // bump within today's active set (so seasonal colors never leak out of season).
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
-  if (prev.getDay() >= 1 && prev.getDay() <= 5 && !themeWeekFor(prev) === !theme) {
+  if (!themeWeekFor(prev) === !theme) {
     const pr = colorForDate(prev);
     if (!pr.holiday && !pr.isFlannel && !pr.isPink && pr.shade.name === c.label) {
       const active = [...new Set(weightedFor(d, wx))];
@@ -651,11 +650,7 @@ function colorForDate(date) {
   return pick(c, {});
 }
 
-function nextWorkday(date) {
-  const n = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  do { n.setDate(n.getDate() + 1); } while (n.getDay() === 0 || n.getDay() === 6);
-  return n;
-}
+const tomorrowOf = date => new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
 
 // ---------------------------------------------------------------
 //  Rendering
@@ -670,6 +665,19 @@ const el = id => document.getElementById(id);
 const fmt = d => d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
 const specialMark = r => r.holiday ? " " + r.holiday.emoji : r.isFlannel ? " 🍂" : "";
 
+//  The optional-ness, said out loud. One line a day, rotated by date so it doesn't nag.
+const EASY = [
+  "Optional, always. Wear it if it's easy.",
+  "One less decision this morning. That's the whole idea.",
+  "Close enough counts. Any shade, any piece.",
+  "No streaks, no scores. Just a nudge.",
+  "If it's in the drawer, great. If not, no worries.",
+  "Toga picks. You decide. Or don't.",
+  "It's a suggestion, not a uniform.",
+  "Simplify the morning — the color's already chosen.",
+];
+const easyLine = d => EASY[hash32(daySeed(d) ^ 0xEA5E) % EASY.length];
+
 function renderHero(date) {
   const r = colorForDate(date);
   const sw = el("swatch");
@@ -677,14 +685,13 @@ function renderHero(date) {
   sw.style.color = contrastText(r.shade.hex);
   document.body.dataset.season = seasonOf(date);
   const isToday = date.toDateString() === new Date().toDateString();
-  el("swEyebrow").textContent = r.weekend ? "Weekend" : isToday ? "Today" : fmt(date);
+  el("swEyebrow").textContent = isToday ? "Today" : fmt(date);
   el("swName").textContent = r.shade.name;
   el("swHex").textContent = r.shade.hex.toUpperCase();
   el("swTeam").textContent = r.team || "";
-  el("swTag").textContent = r.weekend ? "wear whatever — recharge your palette"
-    : r.holiday ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
+  el("swTag").textContent = r.holiday ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
     : r.dayName + " · " + r.season.emoji + " " + r.season.name + " · " + r.moon.emoji + " " + r.moon.name
-      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day!" : r.isPink ? " — Pink Day!" : "");
+      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day" : r.isPink ? " — Pink Day" : r.weekend ? " — off-duty" : "");
 
   // Theme-week banner — during the week, and the week before as a heads-up
   const banner = el("themeBanner");
@@ -692,22 +699,24 @@ function renderHero(date) {
   if (r.theme) {
     banner.innerHTML = `<span class="t-emoji">${r.theme.emoji}</span><b>${r.theme.name}</b><span class="t-note">${r.theme.note}</span>`;
     banner.className = "theme-banner on";
-  } else if (upcoming && !r.weekend) {
+  } else if (upcoming) {
     banner.innerHTML = `<span class="t-emoji">${upcoming.emoji}</span><b>Next week: ${upcoming.name}</b><span class="t-note">${upcoming.colors.join(" · ")}</span>`;
     banner.className = "theme-banner soon";
   } else banner.className = "theme-banner";
 
-  // Next workday whisper
-  const nxt = nextWorkday(date), nr = colorForDate(nxt);
+  // Tomorrow whisper
+  const nxt = tomorrowOf(date), nr = colorForDate(nxt);
   el("swTomorrow").textContent = nxt.toLocaleDateString(undefined, { weekday:"long" }) + ": " + nr.shade.name
     + (specialMark(nr) || (nr.theme && !r.theme ? " " + nr.theme.emoji : "") || (nr.wx ? " " + MOOD[nr.wx.mood].emoji : ""));
 
   const q = el("qualifies");
-  q.innerHTML = r.weekend ? "<b>Weekend.</b> " + r.family.qualifies
-    : r.holiday ? r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>. Holidays overrule the season!"
-    : r.isFlannel ? "🍂 <b>Flannel Day</b> — <i>" + r.family.qualifies + "</i>. Cold out. Cozy up."
-    : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b> today: <i>" + r.family.qualifies + "</i>."
-    : "<b>" + r.family.label + "</b> today — any shade counts: <i>" + r.family.qualifies + "</i>. Do your best!";
+  const shades = "<i>" + r.family.qualifies + "</i>";
+  q.innerHTML = (r.holiday ? r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
+    : r.isFlannel ? "🍂 <b>Flannel Day</b> — " + shades + ". Cold out. Cozy up."
+    : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
+    : r.weekend ? "<b>" + r.family.label + "</b> if you feel like it — " + shades + ". It's the weekend; the color's just here if you want it."
+    : "<b>" + r.family.label + "</b> today — any shade counts: " + shades + ".")
+    + ` <span class="easy">${easyLine(date)}</span>`;
 
   // Why chips: Season · Weather · Moon · Blend
   const loc = getLoc();
@@ -717,10 +726,9 @@ function renderHero(date) {
     ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Locked in — it won't change." }
     : loc
       ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast now…" : "Tomorrow's forecast locks after 6pm — check back tonight." }
-      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Set a location</a> to let the forecast nudge the odds." };
-  const blendValue = r.weekend ? "Free & easy" : r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : r.wx ? "season × weather" : "season";
-  const blendVoice = r.weekend ? "No rules on the weekend."
-    : r.holiday ? r.holiday.note
+      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Set a location</a> to let the forecast nudge the odds. Totally optional." };
+  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.isPink ? "Pink Day" : r.wx ? "season × weather" : "season";
+  const blendVoice = r.holiday ? r.holiday.note
     : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
     : r.isFlannel ? "Any flannel counts — the color is yours. Today you're " + r.team + "."
     : r.isPink ? "A rare one — the dice rolled pink. Today you're " + r.team + "."
@@ -740,9 +748,9 @@ function renderWeek(date) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
     const r = colorForDate(d), cell = document.createElement("div");
-    cell.className = "day" + (r.weekend ? " free" : "") + (d.toDateString() === date.toDateString() ? " selected" : "");
+    cell.className = "day" + (r.weekend ? " offduty" : "") + (d.toDateString() === date.toDateString() ? " selected" : "");
     cell.innerHTML = `<div class="dow">${DAYS[d.getDay()].slice(0,3)}</div><div class="sw" style="background:${r.shade.hex}"></div>
-      <div class="cname">${r.weekend ? "free" : (r.holiday ? r.holiday.emoji + " " : "") + r.shade.name}</div>`;
+      <div class="cname">${(r.holiday ? r.holiday.emoji + " " : "") + r.shade.name}</div>`;
     cell.onclick = () => { selected = d; renderAll(); };
     week.appendChild(cell);
   }
@@ -756,10 +764,10 @@ function renderMonth() {
   for (let i = 0; i < new Date(y, m, 1).getDay(); i++) grid.appendChild(Object.assign(document.createElement("div"), { className:"mcell blank" }));
   for (let d = 1, n = new Date(y, m + 1, 0).getDate(); d <= n; d++) {
     const dt = new Date(y, m, d), r = colorForDate(dt), cell = document.createElement("div");
-    cell.className = "mcell" + (r.weekend ? " free" : "") + (dt.toDateString() === selected.toDateString() ? " selected" : "")
-      + (dt.toDateString() === today.toDateString() ? " today" : "") + (r.theme && !r.weekend ? " themed" : "");
+    cell.className = "mcell" + (r.weekend ? " offduty" : "") + (dt.toDateString() === selected.toDateString() ? " selected" : "")
+      + (dt.toDateString() === today.toDateString() ? " today" : "") + (r.theme ? " themed" : "");
     cell.innerHTML = `<div class="num">${d}</div><div class="bar" style="background:${r.shade.hex}"></div>
-      <div class="cn">${r.weekend ? "free" : r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name}</div>`;
+      <div class="cn">${r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name}</div>`;
     cell.onclick = () => { selected = dt; renderAll(); };
     grid.appendChild(cell);
   }
