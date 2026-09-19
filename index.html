@@ -35,7 +35,8 @@
     --tint-a: rgba(179, 134, 47, 0.10);
     --tint-b: rgba(47, 74, 54, 0.06);
     /* Today's color, set by JS. --day is the hex; --day-ink is a deep readable shade of it
-       for headings; --day-rgb feeds the low-opacity washes. */
+       for headings; --day-rgb feeds the low-opacity washes. --paper/--card/--line are
+       re-derived daily too: the page itself takes on a light tint of the day. */
     --day: #2f4a36;
     --day-ink: #2f4a36;
     --day-rgb: 47, 74, 54;
@@ -725,13 +726,34 @@ function inkOf(hex) {
   const [R, G, B] = h < 60 ? [C,X,0] : h < 120 ? [X,C,0] : h < 180 ? [0,C,X] : h < 240 ? [0,X,C] : h < 300 ? [X,0,C] : [C,0,X];
   return "#" + [R, G, B].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
 }
-//  Let today's color flow into the page: headings, chip washes, background glows.
+//  Let today's color flow into the page: headings, chip washes, background glows —
+//  and the paper itself. The page is cream with a light memory of the day's color.
+//  Dark/neutral days tint toward a cool slate instead (cream × black = mud).
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const toHex = rgb => "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
 function paintPage(hex) {
   const root = document.documentElement.style;
+  const rgb = hexRGB(hex);
+  const [r, g, b] = rgb, l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510, sat = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+  // Paper: cream with a light memory of the day's color. Three cases —
+  //   · White day  → leave the cream alone (a white day should feel clean)
+  //   · Black/Grey → a cool, slightly slate cream (cream × black would be mud)
+  //   · everything else → cream pulled ~11% toward the color
+  const neutral = sat < 0.10;
+  const [paper, card, line] = l > 0.85
+    ? [[247, 243, 234], [255, 253, 247], [230, 221, 201]]
+    : neutral
+      ? [[228, 233, 236], [244, 247, 248], [200, 209, 214]]
+      : [mix([247, 243, 234], rgb, 0.11), mix([255, 253, 247], rgb, 0.05), mix([230, 221, 201], rgb, 0.18)];
+  const muted = mix([96, 102, 90], inkOf(hex) === "#2f4a36" ? [96, 102, 90] : hexRGB(inkOf(hex)), 0.35); // small text: dark enough on the tinted card, leaning the day's ink
+  root.setProperty("--paper", toHex(paper));
+  root.setProperty("--card", toHex(card));
+  root.setProperty("--line", toHex(line));
+  root.setProperty("--muted", toHex(muted));
   root.setProperty("--day", hex);
   root.setProperty("--day-ink", inkOf(hex));
-  root.setProperty("--day-rgb", hexRGB(hex).join(", "));
-  const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = hex;
+  root.setProperty("--day-rgb", rgb.join(", "));
+  const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = toHex(paper);
 }
 let selected = new Date();
 let view = new Date(selected.getFullYear(), selected.getMonth(), 1);
