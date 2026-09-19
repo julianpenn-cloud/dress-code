@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cedars Lakeside · Optional Dress Code</title>
+<title>Toga · a color a day, chosen by the sky</title>
+<meta name="description" content="Toga picks one simple color each workday from the sun, moon, and planets — so your whole team coordinates without a group chat.">
+<meta property="og:title" content="Toga">
+<meta property="og:description" content="A color a day, chosen by the sky. Coordinate outfits with your team — no group chat required.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -230,9 +234,9 @@
 
 <header>
   <div>
-    <div class="brand">Cedars Lakeside</div>
+    <div class="brand">Toga</div>
     <h1>Optional Dress Code</h1>
-    <div class="sub">today's color, chosen by the sky</div>
+    <div class="sub">a color a day, chosen by the sky</div>
   </div>
   <button class="today-btn" id="todayBtn">Today</button>
 </header>
@@ -280,8 +284,8 @@
 
   <footer>
     <div class="ornament">✦ ✦ ✦</div>
-    <div class="brand">Cedars Lakeside</div>
-    <div class="fine">Optional Dress Code · ☾ ☉ ♀ ♂ ♃ ☿ ♄</div>
+    <div class="brand">Toga</div>
+    <div class="fine">In Rome, the color of your toga said who you were. Now the sky decides. · ☾ ☉ ♀ ♂ ♃ ☿ ♄</div>
   </footer>
 </div>
 
@@ -294,16 +298,16 @@
 //  `team` = the day's team name, for saying out loud.
 // ---------------------------------------------------------------
 const PALETTE = [
-  { label: "Purple", hex: "#8E63C4", weight: 1, team: "The Royal Court",  qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
-  { label: "Red",    hex: "#C4453A", weight: 3, team: "The Ember Crew",   qualifies: "maroon, burgundy, brick, coral, rust, wine" },
-  { label: "Blue",   hex: "#3A6FA8", weight: 3, team: "The Lakeside Tide", qualifies: "navy, sky, steel, denim, powder, teal" },
-  { label: "Green",  hex: "#4E8A5A", weight: 2, team: "The Cedar Guard",  qualifies: "olive, forest, sage, emerald, moss, pine" },
-  { label: "Brown",  hex: "#7A5230", weight: 3, team: "The Groundskeepers", qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
-  { label: "Grey",   hex: "#8A8D8F", weight: 3, team: "The Slate Society", qualifies: "charcoal, slate, silver, heather, stone, dove" },
-  { label: "White",  hex: "#F1EFEA", weight: 3, team: "The Frost Line",   qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
-  { label: "Black",  hex: "#2E2E2E", weight: 3, team: "The Night Shift",  qualifies: "charcoal, graphite, slate, dark grey, onyx" },
+  { label: "Purple", hex: "#8E63C4", weight: 1, team: "The Senate",       qualifies: "lilac, lavender, plum, orchid, mauve, violet" },
+  { label: "Red",    hex: "#C4453A", weight: 3, team: "The Legion",       qualifies: "maroon, burgundy, brick, coral, rust, wine" },
+  { label: "Blue",   hex: "#3A6FA8", weight: 3, team: "The Tide",         qualifies: "navy, sky, steel, denim, powder, teal" },
+  { label: "Green",  hex: "#4E8A5A", weight: 2, team: "The Laurel",       qualifies: "olive, forest, sage, emerald, moss, pine" },
+  { label: "Brown",  hex: "#7A5230", weight: 3, team: "The Terra Firma",  qualifies: "tan, camel, khaki, chocolate, taupe, chestnut" },
+  { label: "Grey",   hex: "#8A8D8F", weight: 3, team: "The Stoics",       qualifies: "charcoal, slate, silver, heather, stone, dove" },
+  { label: "White",  hex: "#F1EFEA", weight: 3, team: "The Marble Hall",  qualifies: "cream, ivory, ecru, off-white, light grey, heather" },
+  { label: "Black",  hex: "#2E2E2E", weight: 3, team: "The Night Watch",  qualifies: "charcoal, graphite, slate, dark grey, onyx" },
   //  Yellow: spring & summer only (Mar–Aug). Thin weight — the closets are still catching up. ☀️
-  { label: "Yellow", hex: "#E3B23C", weight: 2, team: "The Sunrise Club", season: [3,4,5,6,7,8], qualifies: "mustard, gold, butter, lemon, marigold, honey" },
+  { label: "Yellow", hex: "#E3B23C", weight: 2, team: "The Sol Invictus", season: [3,4,5,6,7,8], qualifies: "mustard, gold, butter, lemon, marigold, honey" },
 ];
 const byLabel = l => PALETTE.find(c => c.label === l);
 
@@ -739,7 +743,7 @@ function blank() {
 }
 
 function renderAll() {
-  document.title = colorForDate(selected).shade.name + " · Cedars Lakeside";
+  document.title = colorForDate(selected).shade.name + " · Toga";
   renderHero(selected);
   renderWeek(selected);
   renderMonth();
