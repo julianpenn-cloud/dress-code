@@ -210,6 +210,14 @@
   .swatch .name { font-family: "Playfair Display", Georgia, serif; font-size: 44px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; margin: 7px 0 4px; }
   .swatch .hex { font-size: 12px; font-weight: 600; opacity: 0.75; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
   .swatch .tagline { font-size: 12px; margin-top: 9px; opacity: 0.82; font-weight: 500; }
+  /* Flannel note: a small pill inside the hero, in the hero's own text color */
+  .swatch .flannel {
+    display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+    background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.28);
+  }
+  .swatch[style*="color: rgb(26, 26, 26)"] .flannel { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.18); }
+  .swatch .flannel[hidden] { display: none; }
   .swatch .tomorrow {
     position: absolute; top: 16px; right: 18px;
     font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px;
@@ -226,6 +234,7 @@
   }
   .qualifies b { font-weight: 700; }
   .qualifies .easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
+  .qualifies .flannel-note { display: block; margin-top: 6px; color: var(--day-ink); font-weight: 500; }
 
   /* ------------------------------------------------ Week strip */
   .week { display: flex; gap: 6px; }
@@ -238,7 +247,8 @@
   .day:hover { transform: translateY(-2px); }
   .day.selected { border-color: var(--gold); box-shadow: 0 6px 18px rgba(179,134,47,0.18); }
   .day .dow { font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
-  .day .sw { width: 100%; height: 26px; border-radius: 7px; margin: 5px 0 4px; box-shadow: inset 0 0 0 1.5px rgba(34,48,31,0.18); }
+  .day .sw { width: 100%; height: 26px; border-radius: 7px; margin: 5px 0 4px; box-shadow: inset 0 0 0 1.5px rgba(34,48,31,0.18); position: relative; }
+  .day .sw .leaf { position: absolute; right: 3px; bottom: 2px; font-size: 10px; line-height: 1; filter: drop-shadow(0 0 1px rgba(255,255,255,0.8)); }
   .day .cname { font-size: 9.5px; font-weight: 600; line-height: 1.1; }
   .day.offduty .sw, .day.offduty .cname { opacity: 0.72; }
 
@@ -325,6 +335,7 @@
         <div class="team" id="swTeam"></div>
         <div class="hex" id="swHex"></div>
         <div class="tagline" id="swTag"></div>
+        <div class="flannel" id="swFlannel" hidden>🍂 Add a flannel if it works</div>
         <div class="tomorrow" id="swTomorrow"></div>
       </div>
       <div class="theme-banner" id="themeBanner"></div>
@@ -406,8 +417,9 @@
 //  How a day gets its color, in order:
 //    1. Holiday? that color wins.
 //    2. Theme week? pick from the theme's colors only.
-//    3. Flannel? rare cold-season roll (a texture, not a color).
-//    4. Otherwise: seasonal drift × weather mood → weighted table → hashed pick.
+//    3. Otherwise: seasonal drift × weather nudge, no two days alike.
+//  Then, separately, a cold-season roll may add a flannel *note* to the day —
+//  "and if you've got a flannel, today's the day." A texture, not a color.
 //  Every day gets a color, weekends included. Deterministic from the date
 //  (+ locked forecast), so every phone agrees.
 // ===============================================================
@@ -586,15 +598,18 @@ async function refreshWeather() {
 }
 
 // ---------------------------------------------------------------
-//  Flannel — the one special: a texture, not a color, and a cold-season thing.
-//  Rolled independently, ~1 in 4 days Oct–Mar. Orange lives only in Halloween week.
+//  Flannel — not a color, a texture note layered ON the day's color:
+//  "Blue — and if you've got a flannel, today's the day." The color is always the
+//  normal seasonal pick; flannel never replaces or outranks anything.
+//  Odds follow a cold-season curve (per month, in 1/16ths): quiet in October,
+//  peak Dec–Jan, fading out by April. Never two days in a row.
+//  Orange lives only in Halloween week.
 // ---------------------------------------------------------------
-const FLANNEL = { label:"Flannel", hex:"#8B3A2E", team:"The Lumber Yard", qualifies:"any flannel — red, brown, black, white, plaid, whatever you've got" };
-const ORANGE  = { label:"Orange",  hex:"#E0822E", team:"The Pumpkin Patch", qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" };
-const FLANNEL_MONTHS = [10, 11, 12, 1, 2, 3];
-const FLANNEL_ODDS = 4;
+const ORANGE = { label:"Orange", hex:"#E0822E", team:"The Pumpkin Patch", qualifies:"burnt orange, rust, pumpkin, amber, copper, peach" };
+const FLANNEL_CURVE = [3, 3, 2, 0, 0, 0, 0, 0, 0, 1, 2, 3];   // Jan..Dec, out of 16 → peak ≈ 1 in 5, shoulder ≈ 1 in 16
 const daySeed = d => d.getFullYear() * 1000 + Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-const isFlannelDay = d => FLANNEL_MONTHS.includes(d.getMonth() + 1) && hash32(daySeed(d) ^ 0x5EED) % FLANNEL_ODDS === 0;
+const flannelRoll = d => hash32(daySeed(d) ^ 0x5EED) % 16 < FLANNEL_CURVE[d.getMonth()];
+const isFlannelDay = d => flannelRoll(d) && !flannelRoll(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
 
 // ---------------------------------------------------------------
 //  Holiday overrides — these dates just win.
@@ -680,13 +695,12 @@ function colorForDate(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dow = d.getDay();
   const moon = getMoon(d), season = seasonFor(d), theme = themeWeekFor(d), wx = weatherFor(d);
-  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isFlannel:false, holiday:null };
+  // Flannel is a note on the day, not a color — it rides on whatever color wins below.
+  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isFlannel: isFlannelDay(d), holiday:null };
   const pick = (c, extra) => ({ ...base, ...extra, shade:{name:c.label, hex:c.hex}, team:c.team, family:{label:c.label, qualifies:c.qualifies} });
 
   const hol = holidayFor(d);
   if (hol) return pick(hol.color, { holiday:hol });
-
-  if (!theme && isFlannelDay(d)) return pick(FLANNEL, { isFlannel:true });
 
   let c = pickColor(d, wx);
   // No two days in a row on the same color. Compare to yesterday's *final* color and
@@ -694,7 +708,7 @@ function colorForDate(date) {
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
   if (!themeWeekFor(prev) === !theme) {
     const pr = colorForDate(prev);
-    if (!pr.holiday && !pr.isFlannel && pr.shade.name === c.label) {
+    if (!pr.holiday && pr.shade.name === c.label) {
       const active = [...new Set(weightedFor(d, wx))];
       c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
     }
@@ -788,7 +802,8 @@ function renderHero(date) {
   el("swTeam").textContent = r.team || "";
   el("swTag").textContent = r.holiday ? r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note
     : r.dayName + " · " + r.season.emoji + " " + r.season.name + " · " + r.moon.emoji + " " + r.moon.name
-      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.isFlannel ? " — 🍂 Flannel Day" : r.weekend ? " — off-duty" : "");
+      + (r.wx ? " · " + MOOD[r.wx.mood].emoji : "") + (r.weekend ? " — off-duty" : "");
+  el("swFlannel").hidden = !r.isFlannel;
 
   // Theme-week banner — during the week, and the week before as a heads-up.
   // Border is a gradient of the theme's own colors.
@@ -811,10 +826,10 @@ function renderHero(date) {
   const q = el("qualifies");
   const shades = "<i>" + r.family.qualifies + "</i>";
   q.innerHTML = (r.holiday ? r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
-    : r.isFlannel ? "🍂 <b>Flannel Day</b> — " + shades + ". Cold out. Cozy up."
     : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
     : r.weekend ? "<b>" + r.family.label + "</b> if you feel like it — " + shades + ". It's the weekend; the color's just here if you want it."
     : "<b>" + r.family.label + "</b> today — any shade counts: " + shades + ".")
+    + (r.isFlannel ? " <span class=\"flannel-note\">🍂 And if you've got a flannel, today's a good day for it — any color, over the top.</span>" : "")
     + ` <span class="easy">${easyLine(date)}</span>`;
 
   // Why chips: Season · Weather · Moon · Blend
@@ -826,11 +841,11 @@ function renderHero(date) {
     : reg
       ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast for " + reg.label + "…" : "Tomorrow's forecast for " + reg.label + " locks after 6pm." }
       : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Add your zip</a> to share the weather with everyone nearby. Totally optional." };
-  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.wx ? "season × weather" : "season";
-  const blendVoice = r.holiday ? r.holiday.note
+  const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.wx ? "season × weather" : "season";
+  const blendVoice = (r.holiday ? r.holiday.note
     : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
-    : r.isFlannel ? "Any flannel counts — the color is yours. Today you're " + r.team + "."
-    : (r.wx ? "The season sets the odds, the sky tilts them. " : "The season sets the odds. ") + "Today you're " + r.team + ".";
+    : (r.wx ? "The season sets the odds, the sky tilts them. " : "The season sets the odds. ") + "Today you're " + r.team + ".")
+    + (r.isFlannel ? " 🍂 Flannel-friendly." : "");
   el("why").innerHTML = [
     { icon: r.season.emoji, label:"Season",  value: r.season.name + " · " + hh + "h " + String(mm).padStart(2,"0") + "m light", voice: r.season.voice },
     wxChip,
@@ -847,7 +862,7 @@ function renderWeek(date) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
     const r = colorForDate(d), cell = document.createElement("div");
     cell.className = "day" + (r.weekend ? " offduty" : "") + (d.toDateString() === date.toDateString() ? " selected" : "");
-    cell.innerHTML = `<div class="dow">${DAYS[d.getDay()].slice(0,3)}</div><div class="sw" style="background:${r.shade.hex}"></div>
+    cell.innerHTML = `<div class="dow">${DAYS[d.getDay()].slice(0,3)}</div><div class="sw" style="background:${r.shade.hex}">${r.isFlannel ? '<span class="leaf">🍂</span>' : ""}</div>
       <div class="cname">${(r.holiday ? r.holiday.emoji + " " : "") + r.shade.name}</div>`;
     cell.onclick = () => { selected = d; renderAll(); };
     week.appendChild(cell);
@@ -866,7 +881,7 @@ function renderMonth() {
       + (dt.toDateString() === today.toDateString() ? " today" : "") + (r.theme ? " themed" : "");
     cell.style.setProperty("--c", hexRGB(r.shade.hex).join(", "));
     cell.innerHTML = `<div class="num">${d}</div><div class="bar" style="background:${r.shade.hex}"></div>
-      <div class="cn">${r.holiday ? r.holiday.emoji : r.isFlannel ? "🍂" : r.shade.name}</div>`;
+      <div class="cn">${r.holiday ? r.holiday.emoji : r.shade.name}${r.isFlannel ? " 🍂" : ""}</div>`;
     cell.onclick = () => { selected = dt; renderAll(); };
     grid.appendChild(cell);
   }
