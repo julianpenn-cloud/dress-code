@@ -8,6 +8,13 @@
 <meta property="og:title" content="Toga">
 <meta property="og:description" content="One color a day, chosen by the season. Optional, always. One less decision every morning.">
 <meta property="og:type" content="website">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f4a36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Toga">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -102,7 +109,17 @@
   .link-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: var(--green); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
   .link-btn:hover { color: var(--gold); }
   .loc-msg { font-size: 12px; color: var(--gold); min-height: 16px; margin-top: 8px; }
+  .loc-current .muted { color: var(--muted); font-weight: 400; }
   .why-chip .voice a { color: var(--green); }
+  .brand-region { color: var(--muted); font-weight: 500; letter-spacing: 0.3px; }
+  .welcome-card { text-align: center; padding-top: 22px; }
+  .welcome-card .ornament { color: var(--gold); font-size: 11px; letter-spacing: 6px; margin-bottom: 6px; }
+  .welcome-card h3 { font-family: "Playfair Display", Georgia, serif; font-size: 30px; color: var(--green); letter-spacing: 1px; }
+  .welcome-lead { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: 15px; color: var(--ink); margin: 6px 0 12px; }
+  .welcome-joined:empty { display: none; }
+  .welcome-joined { color: var(--green); font-weight: 600; }
+  .welcome-ok { margin-top: 6px; background: var(--green); color: var(--card); border-color: var(--green); padding: 10px 22px; }
+  .welcome-ok:hover { background: var(--gold); border-color: var(--gold); color: var(--card); }
 
   /* ------------------------------------------------ Two-column layout */
   .main { display: grid; grid-template-columns: 1fr; gap: 14px; }
@@ -266,7 +283,7 @@
 
 <header>
   <div>
-    <div class="brand">Toga</div>
+    <div class="brand">Toga<span class="brand-region" id="brandRegion"></span></div>
     <h1>Optional Dress Code</h1>
     <div class="sub">one color a day · wear it if it's easy</div>
   </div>
@@ -324,29 +341,43 @@
   </footer>
 </div>
 
-<!-- Settings sheet: location for the weather mood -->
+<!-- Settings sheet: your region -->
 <div class="sheet" id="settings" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
   <div class="sheet-card">
     <div class="sheet-head">
-      <h3 id="sheetTitle">Weather</h3>
+      <h3 id="sheetTitle">Where you'll be</h3>
       <button class="nav-btn" id="settingsClose" aria-label="Close">×</button>
     </div>
-    <p class="sheet-p">If you like, Toga can let tomorrow's forecast gently tilt the odds — sunny days lean warm, grey days lean cool. The forecast <b>locks each evening after 6pm</b>, so what you see tonight is what you'll see tomorrow. No morning surprises. And like everything here, it's optional.</p>
+    <p class="sheet-p">Add a zip and Toga uses just the first three digits — your metro or area, not your address. Everyone who adds the same area shares one forecast, so they all see the same color. <b>Enter the zip where you'll be</b> (work, school, wherever you're matching), not necessarily home.</p>
     <div class="loc-current" id="locCurrent"></div>
     <div class="loc-row">
-      <input id="locInput" type="text" placeholder="City, e.g. Minneapolis" autocomplete="off">
+      <input id="locInput" type="text" inputmode="numeric" placeholder="Zip code, e.g. 55401" autocomplete="postal-code" maxlength="10">
       <button class="today-btn" id="locSave">Save</button>
     </div>
-    <div class="loc-row loc-alt">
-      <button class="link-btn" id="locGPS">Use my location</button>
+    <div class="loc-row loc-alt" id="shareRow">
+      <button class="link-btn" id="locShare">Share this area's link</button>
       <span class="dot">·</span>
-      <button class="link-btn" id="locClear">Turn weather off</button>
+      <button class="link-btn" id="locClear">Go universal</button>
     </div>
     <div class="loc-msg" id="locMsg"></div>
-    <p class="sheet-fine">Stored only on this device. Forecast by Open-Meteo.</p>
+    <p class="sheet-fine">The forecast locks each evening after 6pm — no morning surprises. Stored only on this device. Weather by Open-Meteo. Like everything here: optional.</p>
   </div>
 </div>
 
+<!-- Welcome: once, then never again -->
+<div class="sheet" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="sheet-card welcome-card">
+    <div class="ornament">✦ ✦ ✦</div>
+    <h3 id="welcomeTitle">Toga</h3>
+    <p class="welcome-lead">One color a day, chosen by the season.</p>
+    <p class="sheet-p">If something in your closet is close, wear it. If not, ignore it. That's the whole thing — one less decision in the morning, and everyone using Toga is quietly matching.</p>
+    <p class="sheet-p welcome-joined" id="welcomeJoined"></p>
+    <button class="today-btn welcome-ok" id="welcomeOk">Sounds easy</button>
+    <p class="sheet-fine">Optional, always. No streaks, no scores.</p>
+  </div>
+</div>
+
+<script src="regions.js"></script>
 <script>
 // ===============================================================
 //  TOGA — a color a day, chosen by the season (and, if you like, the weather)
@@ -454,13 +485,38 @@ function daylightHours(d, lat) {
 }
 
 // ---------------------------------------------------------------
-//  Weather mood — optional. Locked the evening before, stored on this phone,
-//  applied as a gentle nudge to the weights. Never a dependency: if there's no
-//  forecast, the pick is pure seasonal drift.
-//  Moods: sunny · cloudy · rain · snow · null. Source: Open-Meteo (free, no key).
+//  Regions — the only kind of "group" Toga has, on purpose. A region is the
+//  first three digits of a US zip (a metro or rural area, ~900 of them), and the
+//  big metros snap together so one sky = one region. Everyone in a region pulls
+//  the forecast from the SAME fixed point, so they lock the same weather and see
+//  the same color. Three digits isn't identifying — Toga never knows your address.
+//  REGIONS table lives in regions.js: prefix -> [lat, lon, label].
 // ---------------------------------------------------------------
-const WX_KEY = "toga.wx";       // { ymd, mood, tempC, code, lat, lon, place }
-const LOC_KEY = "toga.loc";     // { lat, lon, place }
+const REGION_KEY = "toga.region";  // "554"
+const regionOf = zip => { const p = String(zip).replace(/\D/g, "").slice(0, 3); return REGIONS[p] ? p : null; };
+const getRegion = () => { const p = localStorage.getItem(REGION_KEY); return p && REGIONS[p] ? p : null; };
+const regionInfo = p => p && REGIONS[p] ? { code: p, lat: REGIONS[p][0], lon: REGIONS[p][1], label: REGIONS[p][2] } : null;
+const regionLink = p => location.origin + location.pathname + "#r=" + p;
+function setRegion(p) {
+  if (!REGIONS[p]) throw new Error("unknown region");
+  if (localStorage.getItem(REGION_KEY) !== p) localStorage.removeItem(WX_KEY);
+  localStorage.setItem(REGION_KEY, p);
+}
+function clearRegion() { localStorage.removeItem(REGION_KEY); localStorage.removeItem(WX_KEY); renderAll(); }
+//  Join by link: toga/#r=554 → store the region, clean the URL.
+function joinFromHash() {
+  const m = location.hash.match(/[#&]r=(\d{3})/);
+  if (m && REGIONS[m[1]]) { setRegion(m[1]); history.replaceState(null, "", location.pathname + location.search); return m[1]; }
+  return null;
+}
+
+// ---------------------------------------------------------------
+//  Weather mood — optional, needs a region. Locked the evening before, stored
+//  on this phone, applied as a gentle nudge to the weights. Never a dependency:
+//  if there's no forecast, the pick is pure seasonal drift.
+//  Moods: sunny · cloudy · rain · snow. Source: Open-Meteo (free, no key).
+// ---------------------------------------------------------------
+const WX_KEY = "toga.wx";       // { ymd, mood, tempC, code, region }
 const WX_NUDGE = 1.6;           // multiplier on favored colors (≈20% of the mix)
 
 function moodFromCode(code) {   // WMO weather codes
@@ -478,57 +534,35 @@ const MOOD = {
 };
 const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
-function getLoc() { return loadJSON(LOC_KEY); }
 
-//  The locked forecast for a date, if we have one.
+//  The locked forecast for a date, if we have one (and it's for the current region).
 function weatherFor(d) {
   const w = loadJSON(WX_KEY);
-  return w && w.ymd === ymd(d) ? w : null;
+  return w && w.ymd === ymd(d) && w.region === getRegion() ? w : null;
 }
 
 //  The lock rule, kept strict so there are never same-morning surprises:
 //  a forecast only counts if it was locked the evening before (after 6pm) for
-//  tomorrow. Mornings never fetch. If nothing was locked, the day runs on
-//  pure seasonal drift. Silent on any failure.
+//  tomorrow, from the region's fixed point. Mornings never fetch. If nothing was
+//  locked, the day runs on pure seasonal drift. Silent on any failure.
 async function refreshWeather() {
-  const loc = getLoc();
-  if (!loc) return;
+  const reg = regionInfo(getRegion());
+  if (!reg) return;
   const now = new Date();
   if (now.getHours() < 18) return;                 // evenings only
   const target = tomorrowOf(now);
   const have = loadJSON(WX_KEY);
-  if (have && have.ymd === ymd(target)) return;    // already locked
+  if (have && have.ymd === ymd(target) && have.region === reg.code) return;    // already locked
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=7`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${reg.lat}&longitude=${reg.lon}&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=7`;
     const j = await (await fetch(url)).json();
     const i = j.daily.time.indexOf(ymd(target));
     if (i < 0) return;
     const code = j.daily.weather_code[i];
-    localStorage.setItem(WX_KEY, JSON.stringify({ ymd: ymd(target), mood: moodFromCode(code), tempC: j.daily.temperature_2m_max[i], code, ...loc }));
+    localStorage.setItem(WX_KEY, JSON.stringify({ ymd: ymd(target), mood: moodFromCode(code), tempC: j.daily.temperature_2m_max[i], code, region: reg.code }));
     renderAll();
   } catch { /* no weather tonight — seasonal drift carries it */ }
 }
-
-//  Location: a one-tap setting. Geocodes a city name via Open-Meteo, or uses the browser's GPS.
-async function setLocationByName(q) {
-  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
-  const j = await res.json();
-  if (!j.results || !j.results.length) throw new Error("not found");
-  const r = j.results[0];
-  const place = r.name + (r.admin1 ? ", " + r.admin1 : "") + (r.country_code ? " " + r.country_code : "");
-  localStorage.setItem(LOC_KEY, JSON.stringify({ lat: r.latitude, lon: r.longitude, place }));
-  localStorage.removeItem(WX_KEY);
-  await refreshWeather();
-  renderAll();
-}
-function setLocationByGPS() {
-  return new Promise((ok, no) => navigator.geolocation.getCurrentPosition(async p => {
-    localStorage.setItem(LOC_KEY, JSON.stringify({ lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3), place: "Your location" }));
-    localStorage.removeItem(WX_KEY);
-    await refreshWeather(); renderAll(); ok();
-  }, no, { timeout: 8000 }));
-}
-function clearLocation() { localStorage.removeItem(LOC_KEY); localStorage.removeItem(WX_KEY); renderAll(); }
 
 // ---------------------------------------------------------------
 //  Flannel — the one special: a texture, not a color, and a cold-season thing.
@@ -716,14 +750,14 @@ function renderHero(date) {
     + ` <span class="easy">${easyLine(date)}</span>`;
 
   // Why chips: Season · Weather · Moon · Blend
-  const loc = getLoc();
-  const hours = daylightHours(date, loc ? loc.lat : 45);
+  const reg = regionInfo(getRegion());
+  const hours = daylightHours(date, reg ? reg.lat : 45);
   const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
   const wxChip = r.wx
-    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Locked in — it won't change." }
-    : loc
-      ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast now…" : "Tomorrow's forecast locks after 6pm — check back tonight." }
-      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Set a location</a> to let the forecast nudge the odds. Totally optional." };
+    ? { icon: MOOD[r.wx.mood].emoji, label:"Weather", value: MOOD[r.wx.mood].label + " · " + Math.round(r.wx.tempC * 9/5 + 32) + "°", voice: MOOD[r.wx.mood].voice + " Locked in for " + reg.label + " — same for everyone there." }
+    : reg
+      ? { icon:"🌤️", label:"Weather", value:"Not locked", voice: new Date().getHours() >= 18 ? "Locking tomorrow's forecast for " + reg.label + "…" : "Tomorrow's forecast for " + reg.label + " locks after 6pm." }
+      : { icon:"📍", label:"Weather", value:"Off", voice:"<a href='#' id='setLocLink'>Add your zip</a> to share the weather with everyone nearby. Totally optional." };
   const blendValue = r.holiday ? r.holiday.emoji + " Holiday" : r.theme ? r.theme.emoji + " Theme week" : r.isFlannel ? "🍂 Flannel Day" : r.wx ? "season × weather" : "season";
   const blendVoice = r.holiday ? r.holiday.note
     : r.theme ? "This week the pick is from " + r.theme.colors.length + " colors only."
@@ -770,28 +804,57 @@ function renderMonth() {
 }
 
 // ---------------------------------------------------------------
-//  Settings sheet — location for the weather mood
+//  Settings sheet — your region (the zip where you'll be)
 // ---------------------------------------------------------------
+function renderRegionLine() {
+  const reg = regionInfo(getRegion());
+  el("brandRegion").textContent = reg ? " · " + reg.label : "";
+  el("locCurrent").innerHTML = reg
+    ? `📍 <b>${reg.label}</b> <span class="muted">(region ${reg.code})</span>`
+    : "No region yet — weather is off, colors are universal.";
+  el("shareRow").style.display = reg ? "flex" : "none";
+}
 function openSettings() {
-  const loc = getLoc();
-  el("locCurrent").textContent = loc ? "📍 " + loc.place : "No location set — weather is off.";
+  renderRegionLine();
   el("locInput").value = "";
   el("locMsg").textContent = "";
   el("settings").classList.add("open");
   setTimeout(() => el("locInput").focus(), 50);
 }
 function closeSettings() { el("settings").classList.remove("open"); }
-async function saveLocation() {
-  const q = el("locInput").value.trim();
-  if (!q) return;
-  el("locMsg").textContent = "Looking up…";
-  try { await setLocationByName(q); el("locMsg").textContent = "Saved. Forecast locks each evening."; el("locCurrent").textContent = "📍 " + getLoc().place; }
-  catch { el("locMsg").textContent = "Couldn't find that place — try a city name."; }
+async function saveRegion() {
+  const p = regionOf(el("locInput").value);
+  if (!p) { el("locMsg").textContent = "Hmm — try a US zip code, like 55401."; return; }
+  setRegion(p);
+  renderRegionLine();
+  el("locInput").value = "";
+  el("locMsg").textContent = "Saved. Everyone in " + REGIONS[p][2] + " sees the same color.";
+  renderAll();
+  refreshWeather();
 }
+async function shareRegion() {
+  const p = getRegion(); if (!p) return;
+  const url = regionLink(p), text = "Toga · one color a day, chosen by the season. Join " + REGIONS[p][2] + ":";
+  try {
+    if (navigator.share) await navigator.share({ title: "Toga", text, url });
+    else { await navigator.clipboard.writeText(url); el("locMsg").textContent = "Link copied — text it to whoever you're matching with."; }
+  } catch { el("locMsg").textContent = url; }
+}
+
+// ---------------------------------------------------------------
+//  Welcome — once, then never again
+// ---------------------------------------------------------------
+const SEEN_KEY = "toga.seen";
+function maybeWelcome(joined) {
+  if (localStorage.getItem(SEEN_KEY)) return;
+  if (joined) el("welcomeJoined").textContent = "You've joined " + REGIONS[joined][2] + " — everyone there sees the same color you do.";
+  el("welcome").classList.add("open");
+}
+function dismissWelcome() { localStorage.setItem(SEEN_KEY, "1"); el("welcome").classList.remove("open"); }
 
 function renderAll() {
   document.title = colorForDate(selected).shade.name + " · Toga";
-  renderHero(selected); renderWeek(selected); renderMonth();
+  renderHero(selected); renderWeek(selected); renderMonth(); renderRegionLine();
 }
 
 el("todayBtn").onclick = () => { selected = new Date(); view = new Date(selected.getFullYear(), selected.getMonth(), 1); renderAll(); };
@@ -800,12 +863,18 @@ el("nextMonth").onclick = () => { view.setMonth(view.getMonth() + 1); renderAll(
 el("settingsBtn").onclick = openSettings;
 el("settingsClose").onclick = closeSettings;
 el("settings").onclick = e => { if (e.target === el("settings")) closeSettings(); };
-el("locSave").onclick = saveLocation;
-el("locInput").onkeydown = e => { if (e.key === "Enter") saveLocation(); };
-el("locGPS").onclick = async () => { el("locMsg").textContent = "Asking your phone…"; try { await setLocationByGPS(); el("locMsg").textContent = "Saved."; el("locCurrent").textContent = "📍 Your location"; } catch { el("locMsg").textContent = "Location permission denied."; } };
-el("locClear").onclick = () => { clearLocation(); el("locCurrent").textContent = "No location set — weather is off."; el("locMsg").textContent = "Weather turned off."; };
+el("locSave").onclick = saveRegion;
+el("locInput").onkeydown = e => { if (e.key === "Enter") saveRegion(); };
+el("locShare").onclick = shareRegion;
+el("locClear").onclick = () => { clearRegion(); renderRegionLine(); el("locMsg").textContent = "Back to universal — no region, no weather."; };
+el("welcomeOk").onclick = dismissWelcome;
+el("welcome").onclick = e => { if (e.target === el("welcome")) dismissWelcome(); };
+
+const joined = joinFromHash();
 renderAll();
+maybeWelcome(joined);
 refreshWeather();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>
