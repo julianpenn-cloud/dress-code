@@ -21,7 +21,6 @@
 <style>
   :root {
     --paper: #f7f3ea;
-    --paper-deep: #efe8d8;
     --ink: #22301f;
     --muted: #7c826f;
     --card: #fffdf7;
@@ -62,7 +61,6 @@
     transition: background 0.6s ease;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
-  .serif { font-family: "Playfair Display", Georgia, "Times New Roman", serif; }
 
   /* ------------------------------------------------ Header (compact) */
   header {
@@ -235,13 +233,30 @@
   }
   .swatch .tomorrow::before { content: "Next · "; opacity: 0.7; font-weight: 500; }
 
-  .qualifies {
+  /* ------------------------------------------------ Today's outfit */
+  .outfit {
     background: var(--paper);
     border: 1px solid var(--line); border-left: 3px solid var(--gold);
-    border-radius: 12px; padding: 12px 15px; font-size: 13px;
+    border-radius: 12px; padding: 12px 15px 13px;
   }
-  .qualifies b { font-weight: 700; }
-  .qualifies .easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
+  .fit-toggle { display: flex; gap: 5px; margin-bottom: 13px; }
+  .fit-btn {
+    flex: 1; font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+    padding: 7px 8px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    transition: all 0.15s ease;
+  }
+  .fit-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .fit-btn.on { background: var(--green); border-color: var(--green); color: var(--card); }
+  .fit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fit-piece { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+  .fit-piece .garment { width: 48px; height: 48px; margin-bottom: 6px; filter: drop-shadow(0 2px 5px rgba(34,48,31,0.18)); }
+  .fit-label { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--day-ink); opacity: 0.85; }
+  .fit-name { font-family: "Playfair Display", Georgia, serif; font-size: 18px; font-weight: 600; line-height: 1.1; margin-top: 1px; }
+  .fit-alias { font-size: 10.5px; color: var(--muted); line-height: 1.3; margin-top: 3px; font-style: italic; }
+  .fit-note { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(var(--day-rgb), 0.22); font-size: 12.5px; }
+  .fit-note b { font-weight: 700; }
+  .fit-easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
 
   /* ------------------------------------------------ Week strip */
   .week { display: flex; gap: 6px; }
@@ -392,7 +407,15 @@
         <div class="tomorrow" id="swTomorrow"></div>
       </div>
       <div class="theme-banner" id="themeBanner"></div>
-      <div class="qualifies" id="qualifies"></div>
+      <div class="outfit">
+        <div class="fit-toggle" role="group" aria-label="Which piece gets today's color">
+          <button class="fit-btn" id="modeTop" aria-pressed="true">Color on top</button>
+          <button class="fit-btn" id="modeBottom" aria-pressed="false">Color on bottom</button>
+        </div>
+        <div class="fit-row" id="fitRow"></div>
+        <div class="fit-note" id="fitNote"></div>
+        <div class="fit-easy" id="fitEasy"></div>
+      </div>
       <div class="panel">
         <h2>This week</h2>
         <div class="week" id="week"></div>
@@ -542,22 +565,22 @@ function themeWeekFor(d) {
 //  Seasons — eight named stretches (so "late autumn" ≠ "early autumn"),
 //  plus the four coarse seasons that drive the stained-glass tint.
 // ---------------------------------------------------------------
-const SEASONS = [ // [startMonth, startDay, name, emoji, voice]
-  [12,21, "Deep Winter",   "❄️", "The quiet stretch. Layers, wool, and whatever's warmest."],
-  [ 2, 5, "Late Winter",   "🌬️", "Light's coming back. Not warm yet — but coming."],
-  [ 3,20, "Early Spring",  "🌱", "Mud season. The first green anything counts as a win."],
-  [ 5, 1, "Late Spring",   "🌷", "Everything's blooming at once. Lean bright."],
-  [ 6,21, "High Summer",   "☀️", "Long light, warm nights. Keep it easy and breathable."],
-  [ 8, 8, "Late Summer",   "🌾", "Golden hour season. Warm tones, slower pace."],
-  [ 9,22, "Early Autumn",  "🍂", "Crisp mornings, color in the trees. Layer up."],
-  [11, 5, "Late Autumn",   "🍁", "Leaves down, sky low. Deep, grounded colors."],
+const SEASONS = [ // [startMonth, startDay, name, emoji]
+  [12,21, "Deep Winter",   "❄️"],
+  [ 2, 5, "Late Winter",   "🌬️"],
+  [ 3,20, "Early Spring",  "🌱"],
+  [ 5, 1, "Late Spring",   "🌷"],
+  [ 6,21, "High Summer",   "☀️"],
+  [ 8, 8, "Late Summer",   "🌾"],
+  [ 9,22, "Early Autumn",  "🍂"],
+  [11, 5, "Late Autumn",   "🍁"],
 ];
 function seasonFor(d) {
   const y = d.getFullYear(), t = d.getTime();
   // Deep Winter wraps the year: Dec 21 → Feb 4
   let cur = SEASONS[0];
   for (const s of SEASONS) if (new Date(y, s[0] - 1, s[1]).getTime() <= t) cur = s;
-  return { name: cur[2], emoji: cur[3], voice: cur[4] };
+  return { name: cur[2], emoji: cur[3] };
 }
 function seasonOf(d) { // coarse, for CSS tint
   const m = d.getMonth() + 1;
@@ -729,10 +752,10 @@ function moodFromCode(code) {   // WMO weather codes
   return "cloudy";
 }
 const MOOD = {
-  sunny:  { emoji:"☀️", label:"Sunny",    favor: c => c.temp === "warm" || c.tone === "light", voice:"Bright out. The warm, light colors get a nudge." },
-  cloudy: { emoji:"☁️", label:"Overcast", favor: c => c.temp === "cool" && c.tone !== "light",  voice:"Low sky. Cooler, deeper colors get a nudge." },
-  rain:   { emoji:"🌧️", label:"Rain",     favor: c => ["Blue","Teal","Grey","Plum"].includes(c.label), voice:"Wet day. Blues and greys lean in." },
-  snow:   { emoji:"❄️", label:"Snow",     favor: c => c.tone === "light" || c.label === "Grey", voice:"Snow day. Whites and greys, naturally." },
+  sunny:  { emoji:"☀️", label:"Sunny",    favor: c => c.temp === "warm" || c.tone === "light" },
+  cloudy: { emoji:"☁️", label:"Overcast", favor: c => c.temp === "cool" && c.tone !== "light" },
+  rain:   { emoji:"🌧️", label:"Rain",     favor: c => ["Blue","Teal","Grey","Plum"].includes(c.label) },
+  snow:   { emoji:"❄️", label:"Snow",     favor: c => c.tone === "light" || c.label === "Grey" },
 };
 const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
@@ -827,52 +850,185 @@ function hash32(x) {
   x ^= x >>> 15; x = Math.imul(x, 0x846ca68b);
   x ^= x >>> 16; return x >>> 0;
 }
-//  Integer-weighted table for the date. Theme weeks: theme colors, equal weight.
-//  Otherwise: each color's drifted weight (×10 for resolution), × WX_NUDGE if the mood favors it.
-function weightedFor(d, wx) {
+//  The colors in play on a date, in palette order: a theme week's own set, or every
+//  color with a non-zero weight that day. The pick and the no-repeat bump both read
+//  this, so they can never disagree about what was a candidate.
+function paletteFor(d, wx) {
   const theme = themeWeekFor(d);
   if (theme) return theme.colors.map(byLabel);
+  return PALETTE.filter(c => weightOf(c, d, wx, null) > 0);
+}
+//  A color's integer weight. Same numbers as the old expanded-array approach
+//  (drifted weight ×10 for resolution, × WX_NUDGE when the mood favors it).
+function weightOf(c, d, wx, theme) {
+  if (theme) return 1;
   const mood = wx && MOOD[wx.mood];
-  return PALETTE.flatMap(c => {
-    let w = weightOn(c, d) * 10;
-    if (mood && mood.favor(c)) w *= WX_NUDGE;
-    return Array(Math.round(w)).fill(c);
-  });
+  return Math.round(weightOn(c, d) * 10 * (mood && mood.favor(c) ? WX_NUDGE : 1));
+}
+//  Walk the cumulative ranges instead of materialising the table — O(colors), not
+//  O(total weight). Identical selection: index = hash % total, same as before.
+function pickFrom(cand, weight, nudge) {
+  const total = cand.reduce((s, c) => s + weight(c), 0);
+  if (total <= 0) return cand[0];
+  let i = (nudge >>> 0) % total;
+  for (const c of cand) { const w = weight(c); if (i < w) return c; i -= w; }
+  return cand[cand.length - 1];
 }
 function pickColor(d, wx) {
-  const table = weightedFor(d, wx);
-  return table[hash32(daySeed(d) ^ (wx ? 0xA11CE : 0)) % table.length];
+  const theme = themeWeekFor(d);
+  return pickFrom(paletteFor(d, wx), c => weightOf(c, d, wx, theme), hash32(daySeed(d) ^ (wx ? 0xA11CE : 0)));
 }
 
 // ---------------------------------------------------------------
 //  Core: resolve a date to a color. Every day gets one — weekends included.
 //  It's all optional anyway; the weekend flag only softens the tone.
+//
+//  "No two days in a row on the same color" is a recurrence — today depends on
+//  yesterday's *final* color. It used to recurse, which only terminated because
+//  holidays return early (a holiday-free calendar would have blown the stack) and
+//  cost ~110 nested calls per date. Now: walk back to the nearest resolved day or
+//  holiday, replay forward, memoize. Iterative, bounded, and ~40× less work.
 // ---------------------------------------------------------------
-function colorForDate(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const colorCache = new Map();
+const WALK_CAP = 200;   // safety only — the real longest gap between holidays is ~114 days
+//  Memo key. NOT daySeed: that counts elapsed milliseconds from Jan 0, so the spring
+//  DST transition (which drops an hour) makes two consecutive days share a value —
+//  fine as a hash input, fatal as a cache key since a day would inherit its
+//  neighbour's context. ymd() is the actual calendar date, so it is unique.
+const cacheKey = d => ymd(d);
+
+//  Everything about a day except its color.
+function dayContext(d) {
   const dow = d.getDay();
-  const moon = getMoon(d), season = seasonFor(d), theme = themeWeekFor(d), wx = weatherFor(d);
-  // Flannel is a note on the day, not a color — it rides on whatever color wins below.
-  const base = { weekend: dow === 0 || dow === 6, dow, dayName:DAYS[dow], moon, season, theme, wx, isFlannel: isFlannelDay(d), holiday:null };
-  const pick = (c, extra) => ({ ...base, ...extra, shade:{name:c.label, hex:c.hex}, team:c.team, family:{label:c.label, qualifies:c.qualifies} });
-
+  return { weekend: dow === 0 || dow === 6, dow, dayName: DAYS[dow], moon: getMoon(d),
+           season: seasonFor(d), theme: themeWeekFor(d), wx: weatherFor(d), isFlannel: isFlannelDay(d) };
+}
+function withColor(ctx, c, holiday) {
+  return { ...ctx, shade:{ name:c.label, hex:c.hex }, team:c.team,
+           family:{ label:c.label, qualifies:c.qualifies }, holiday: holiday || null };
+}
+//  The color a day picks on its own, before the no-repeat rule.
+function rawColorFor(d, ctx) {
   const hol = holidayFor(d);
-  if (hol) return pick(hol.color, { holiday:hol });
+  return hol ? withColor(ctx, hol.color, hol) : withColor(ctx, pickColor(d, ctx.wx), null);
+}
 
-  let c = pickColor(d, wx);
-  // No two days in a row on the same color. Compare to yesterday's *final* color and
-  // bump within today's active set (so seasonal/theme colors never leak out of their set).
-  // Applies across theme-week boundaries too — the bump only ever picks from today's set.
-  const prev = new Date(d); prev.setDate(prev.getDate() - 1);
-  const pr = colorForDate(prev);
-  if (!pr.holiday && pr.shade.name === c.label) {
-    const active = [...new Set(weightedFor(d, wx))];
-    if (active.length > 1) c = active[(active.indexOf(c) + (active.length > 4 ? 3 : 1)) % active.length];
+function colorForDate(date) {
+  const d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const cached0 = colorCache.get(cacheKey(d0));
+  if (cached0) return cached0;
+
+  // Walk back collecting unresolved days, until a cached day or a holiday stops us.
+  const chain = [];
+  for (let cur = d0, i = 0; i <= WALK_CAP; i++) {
+    const hit = colorCache.get(cacheKey(cur));
+    if (hit) { chain.push({ d:cur, r:hit, done:true }); break; }
+    const ctx = dayContext(cur), r = rawColorFor(cur, ctx);
+    chain.push({ d:cur, ctx, r, done:false });
+    if (r.holiday || i === WALK_CAP) break;      // a holiday depends on nothing earlier
+    cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() - 1);
   }
-  return pick(c, {});
+
+  // Replay forward, applying the no-repeat rule against the previous *final* color.
+  let prev = null;
+  for (let i = chain.length - 1; i >= 0; i--) {
+    const { d, ctx, done } = chain[i];
+    if (done) { prev = chain[i].r; continue; }
+    let r = chain[i].r;
+    if (!r.holiday && prev && !prev.holiday && prev.shade.name === r.shade.name) {
+      const active = [...new Set(paletteFor(d, ctx.wx))];
+      const at = active.findIndex(c => c.label === r.shade.name);
+      if (active.length > 1 && at >= 0) {
+        r = withColor(ctx, active[(at + (active.length > 4 ? 3 : 1)) % active.length], null);
+      }
+    }
+    colorCache.set(cacheKey(d), r);
+    prev = r;
+  }
+  return colorCache.get(cacheKey(d0));
 }
 
 const tomorrowOf = date => new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+// ---------------------------------------------------------------
+//  Outfit — the day's color on one piece, a partner on the other.
+//
+//  Wardrobes are lopsided: most people own a dozen tops and three pairs of
+//  trousers, and almost nobody owns red trousers. So the two roles draw from
+//  different pools — the full palette up top, a small neutral-biased set below —
+//  and one rule keeps every pairing wearable: a loud color gets a quiet partner.
+//  Never two loud pieces. The toggle only decides which end wears the color.
+// ---------------------------------------------------------------
+const BOTTOMS = [
+  { label:"Denim",    hex:"#3C5A78", neutral:true,  alias:"denim, indigo, dark wash, jean blue",   curve:[4,4,4,4,4,4,4,4,4,4,4,4] },
+  { label:"Charcoal", hex:"#3A3D40", neutral:true,  alias:"charcoal, graphite, dark grey, slate",  curve:[4,4,3,2,2,2,2,2,3,4,4,4] },
+  { label:"Black",    hex:"#242424", neutral:true,  alias:"black, jet, ink",                       curve:[4,3,3,2,2,2,2,2,2,3,3,4] },
+  { label:"Khaki",    hex:"#B9A57C", neutral:true,  alias:"khaki, tan, sand, stone, chino, beige",  curve:[1,1,2,3,4,4,4,3,2,1,1,1] },
+  { label:"Cream",    hex:"#E8E0CE", neutral:true,  alias:"cream, ivory, bone, off-white",         curve:[0,0,1,2,3,3,3,3,2,1,0,0] },
+  { label:"Olive",    hex:"#59603F", neutral:false, alias:"olive, army, moss, loden",              curve:[1,1,2,3,3,2,2,2,3,3,2,1] },
+  { label:"Wine",     hex:"#5E2A33", neutral:false, alias:"wine, burgundy, maroon, oxblood",       curve:[2,2,2,1,0,0,0,0,1,3,3,2] },
+];
+const QUITE_NEUTRAL = ["White","Grey","Black","Brown"];                  // colors that read as neutral
+const PANTS_OK      = ["Blue","Black","Grey","White","Brown","Green","Burgundy"];  // plausible trousers
+const isQuiet = label => QUITE_NEUTRAL.includes(label);
+const bWeight = (b, d) => Math.round(weightOn(b, d) * 10);
+const cWeight = (c, d) => Math.round(weightOn(c, d) * 10);
+
+//  A trouser. Every BOTTOMS entry is a behaved trouser color by construction — that's
+//  the point of the small set — so no further filtering is needed.
+function pickBottom(d, excludeLabel) {
+  const pool = BOTTOMS.filter(b => bWeight(b, d) > 0 && b.label !== excludeLabel);
+  const use = pool.length ? pool : BOTTOMS;
+  return pickFrom(use, b => bWeight(b, d), hash32(daySeed(d) ^ 0xB0770));
+}
+//  The top worn with the day's color. If the color itself is loud, the top must be quiet.
+//  If the color is already quiet, the top may carry some — and we lean it to the opposite
+//  temperature so the two don't sit in the same register.
+function pickPartnerTop(d, heroLabel) {
+  const hero = byLabel(heroLabel), loud = !isQuiet(heroLabel);
+  const pool = PALETTE.filter(c => cWeight(c, d) > 0 && c.label !== heroLabel && (!loud || isQuiet(c.label)));
+  const use = pool.length ? pool : PALETTE.filter(c => c.label === "White");
+  const want = hero && hero.temp !== "neutral" ? (hero.temp === "warm" ? "cool" : "warm") : null;
+  const weight = c => Math.round(cWeight(c, d)
+    * (loud ? 1 : (isQuiet(c.label) ? 0.35 : 1))     // a quiet hero wants a partner that carries some color
+    * (want && c.temp === want ? 1.8 : 1));          // and one from the other temperature
+  return pickFrom(use, weight, hash32(daySeed(d) ^ 0x70B1));
+}
+const pieceOfColor  = c => ({ label:c.label, hex:c.hex, alias:c.qualifies });
+const pieceOfBottom = b => ({ label:b.label, hex:b.hex, alias:b.alias });
+
+function outfitFor(date, r, mode) {
+  // Normalise here, not at the call site: daySeed counts elapsed milliseconds from Jan 0,
+  // so a 9pm timestamp hashes differently to a midnight one and the partner would change
+  // during the day. Every hash input must come from a midnight date.
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const hero = { label: r.shade.name, hex: r.shade.hex, alias: r.family.qualifies };
+
+  // Monochrome Week's whole point is one color top to toe — so honour it literally.
+  if (r.theme && r.theme.name === "Monochrome Week")
+    return { top: hero, bottom: hero, mono: true, note: "Monochrome Week — one color, top to toe. Any shade of it." };
+
+  const quiet = isQuiet(hero.label);
+  if (mode === "bottom") {
+    const top = pieceOfColor(pickPartnerTop(d, hero.label));
+    const wear = PANTS_OK.includes(hero.label);
+    if (!wear) {
+      const fallback = pickBottom(d, hero.label);
+      return { top, bottom: hero,
+        note: hero.label + " trousers are a big ask. Not in the drawer? Flip it: <b>" + fallback.label
+            + "</b> below, " + hero.label + " up top." };
+    }
+    return { top, bottom: hero, note: quiet
+      ? (isQuiet(top.label)
+          ? "<b>" + hero.label + "</b> below, <b>" + top.label + "</b> up top — quiet all the way."
+          : "<b>" + hero.label + "</b> below, so the top can carry some color: <b>" + top.label + "</b>.")
+      : "The color goes low today. Keep the top quiet: <b>" + top.label + "</b>." };
+  }
+  const bottom = pieceOfBottom(pickBottom(d, hero.label));
+  return { top: hero, bottom, note: quiet
+    ? "A quiet color today — <b>" + bottom.label + "</b> down below."
+    : "One loud piece, one quiet one — <b>" + bottom.label + "</b> down below." };
+}
 
 // ---------------------------------------------------------------
 //  Rendering
@@ -984,13 +1140,7 @@ function renderHero(date) {
   el("swTomorrow").textContent = nxt.toLocaleDateString(undefined, { weekday:"long" }) + ": " + nr.shade.name
     + (specialMark(nr) || (nr.theme && !r.theme ? " " + nr.theme.emoji : "") || (nr.wx ? " " + MOOD[nr.wx.mood].emoji : ""));
 
-  const q = el("qualifies");
-  const shades = "<i>" + r.family.qualifies + "</i>";
-  q.innerHTML = (r.holiday ? r.holiday.emoji + " <b>" + r.holiday.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
-    : r.theme ? r.theme.emoji + " <b>" + r.theme.name + "</b> — <b>" + r.family.label + "</b>: " + shades + "."
-    : r.weekend ? "<b>" + r.family.label + "</b> if you feel like it — " + shades + ". It's the weekend; the color's just here if you want it."
-    : "<b>" + r.family.label + "</b> today — any shade counts: " + shades + ".")
-    + ` <span class="easy">${easyLine(date)}</span>`;
+  renderOutfit(date, r);
 
   // The verse — one short poem in place of an explanation. Weather keeps one quiet line
   // beneath it: Universal (no zip) · Seasonal (zip set, forecast pending) · the forecast.
@@ -1003,6 +1153,39 @@ function renderHero(date) {
     : reg ? "🌤️ Seasonal · " + reg.label + " · tomorrow's forecast arrives this evening"
     : "📍 Universal · <a href='#' id='setLocLink'>add your zip</a> to share the weather with everyone nearby";
   const link = el("setLocLink"); if (link) link.onclick = e => { e.preventDefault(); openSettings(); };
+}
+
+// ---------------------------------------------------------------
+//  Today's outfit — two garment glyphs, filled with the two pieces.
+//  Simple silhouettes: a tee and a pair of trousers, each a single path.
+// ---------------------------------------------------------------
+const GARMENT = {
+  top:    "M26 7 L14 13 L5 29 L16 34 L18 28 L18 57 L46 57 L46 28 L48 34 L59 29 L50 13 L38 7 C36 11 28 11 26 7 Z",
+  bottom: "M17 7 L47 7 L45 57 L34 57 L32 27 L30 57 L19 57 Z",
+};
+const garmentSVG = (kind, hex) =>
+  `<svg class="garment" viewBox="0 0 64 64" aria-hidden="true"><path d="${GARMENT[kind]}" fill="${hex}" stroke="rgba(34,48,31,0.35)" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+
+const MODE_KEY = "toga.mode";
+const getMode = () => (localStorage.getItem(MODE_KEY) === "bottom" ? "bottom" : "top");
+function setMode(m) { localStorage.setItem(MODE_KEY, m); renderAll(); }
+
+function renderOutfit(date, r) {
+  const mode = getMode();
+  const fit = outfitFor(date, r || colorForDate(date), mode);
+  for (const [id, on] of [["modeTop", mode === "top"], ["modeBottom", mode === "bottom"]]) {
+    el(id).classList.toggle("on", on);
+    el(id).setAttribute("aria-pressed", String(on));
+  }
+  el("fitRow").innerHTML = [["top", "Top", fit.top], ["bottom", "Bottom", fit.bottom]].map(([kind, label, piece]) =>
+    `<div class="fit-piece">
+       ${garmentSVG(kind, piece.hex)}
+       <div class="fit-label">${label}</div>
+       <div class="fit-name">${piece.label}</div>
+       <div class="fit-alias">${piece.alias}</div>
+     </div>`).join("");
+  el("fitNote").innerHTML = fit.note;
+  el("fitEasy").textContent = easyLine(date);
 }
 
 function renderWeek(date) {
@@ -1094,6 +1277,8 @@ function renderAll() {
 el("todayBtn").onclick = () => { selected = new Date(); view = new Date(selected.getFullYear(), selected.getMonth(), 1); renderAll(); };
 el("prevMonth").onclick = () => { view.setMonth(view.getMonth() - 1); renderAll(); };
 el("nextMonth").onclick = () => { view.setMonth(view.getMonth() + 1); renderAll(); };
+el("modeTop").onclick = () => setMode("top");
+el("modeBottom").onclick = () => setMode("bottom");
 el("settingsBtn").onclick = openSettings;
 el("settingsClose").onclick = closeSettings;
 el("settings").onclick = e => { if (e.target === el("settings")) closeSettings(); };
