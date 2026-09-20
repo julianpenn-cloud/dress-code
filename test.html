@@ -225,6 +225,46 @@ function run() {
     for (const w of ["Cedars", "Lakeside", "Jasmin", "Julian", "Bigos"]) ok(!html.includes(w), "found \"" + w + "\" in the page");
   });
 
+  // ---------------------------------------------------------------- brand
+  group("brand · classic wordmark, independent of any CDN");
+  test("the wordmark is set in the inlined face, and it loaded", () => {
+    const wm = doc.querySelector(".wordmark");
+    ok(wm, "no wordmark in the page");
+    const fam = app.getComputedStyle(wm).fontFamily;
+    ok(/Toga Mark/.test(fam), "wordmark is not using the inlined face: " + fam);
+    ok(app.document.fonts.check('600 41px "Toga Mark"'), "the inlined face did not load");
+  });
+  test("the wordmark is title case — not caps, not small caps", () => {
+    // caps of any kind read as initials, and TOGA is an anagram of GOAT
+    const cs = app.getComputedStyle(doc.querySelector(".wordmark"));
+    eq(cs.textTransform, "none", "a text-transform is making the name read as initials");
+    eq(cs.fontVariantCaps, "normal", "small caps still reads as initials");
+    eq(doc.querySelector(".wordmark").textContent.trim(), "Toga", 'the name should be exactly "Toga"');
+  });
+  test("the wordmark font is embedded, not fetched", () => {
+    const css = [...doc.querySelectorAll("style")].map(s => s.textContent).join("");
+    ok(/@font-face[^}]*Toga Mark/.test(css), "no @font-face declared for the wordmark");
+    ok(/url\(data:font\/woff2;base64,/.test(css), "the wordmark font is not inlined as base64");
+  });
+  test("the bookplate rule measures the name, not the whole type block", () => {
+    const wm = doc.querySelector(".wordmark");
+    const rule = app.getComputedStyle(wm, "::before");
+    eq(rule.display, "block", "the rule should be a block");
+    near(parseFloat(rule.width), wm.getBoundingClientRect().width, 1.5, "rule width vs wordmark width");
+  });
+  test("the mark appears in the header, footer and welcome card", () => {
+    for (const sel of ["header .mark", "footer .mark-sm", ".welcome-card .mark-lg"])
+      ok(doc.querySelector(sel), "missing the mark at " + sel);
+  });
+  test("the mark is drawn flat — no leftover 3D shading", () => {
+    const sym = doc.getElementById("toga-mark");
+    ok(sym, "the symbol is gone");
+    const svg = sym.innerHTML;
+    ok(!/<ellipse/.test(svg), "the shading ellipses are back — it will read as a ball again");
+    ok(!/url\(#fold\)/.test(svg), "the cylinder gradient is back");
+    ok(/<path[^>]*fill="#f7f3ea"/.test(svg), "the rail that makes it read as cloth is gone");
+  });
+
   // ---------------------------------------------------------------- readability
   group("readability · the daily paper stays legible");
   const lum = hex => { const [r, g, b] = A.hexRGB(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };

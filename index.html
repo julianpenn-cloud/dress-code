@@ -17,8 +17,17 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* The wordmark's own font: EB Garamond 600, subset to the four glyphs the name needs
+     and inlined (~1.7KB base64). The brand must not depend on a CDN — blocked, offline or
+     slow, "Toga" would otherwise fall back to Georgia. Four glyphs, because the name is
+     four letters. The rest of the page still loads EB Garamond normally. */
+  @font-face {
+    font-family: "Toga Mark";
+    font-style: normal; font-weight: 600; font-display: swap;
+    src: url(data:font/woff2;base64,d09GMgABAAAAAAUYAA8AAAAACLAAAATBAAEAxQAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwwBmA/U1RBVEQATBEICoZwhVEBNgIkAxQLDAAEIAWEKAcgGwQHKK4GbGM42iFSKY6L7tvvOeSwaJgVWTl8iBnElxz+vgsgdplUyTdcAWoBdLmjuHQ2gHwAkl/pyPpVVG6QnFjufqtVu0CyIA4oDTiQiE7viOZ2D5ne6W4mo7sN15Zl4uo0n8cUiyDd0KND19SP9Af7P3uCR8xVY2OkZuOE12CH24Ms2sYHNB4OWGdu7TGd1WtQonmsNWT4iRBAAEsAQCEIhggCmOPJBCosTsoCOQwBtAYABDAnkgtJKK11yrl0zVYPw2eCCePADOWvWqRBza8EoGIb6cbDD6IUEK290XhYpRGrvw89Awxd5CCAAMgmCQH40oIQTFGAIwkgkMSYPjIfAf0fQ0cWIBhiCwGI0STrDRCUKDnjKmsAOAJGVSVFKsAch1pFIwwSVjxH40N9SG/TG/UqJIgoWmNzqxEA5oApSAogvQAAhgD/8EtQnTnkqWphp5V9dDVije7MAkp7mqt1qrsVcHTXdWVvr0L/EN2RCdOaGkX3aVdNKf4FZ3RrBhRdBVNXatUKBJi6VkH1BvXzyqrORlBT57yrRlIKmp6m3ZObTfPPDyOuBOb2rEFrw/BoRquyEqZyZO/kK+kRx4Hzt1P6om9j7b6LehjpXY69swqKMD+7m7CgR7emRteyplpBlVqTgzB1X/78Z8IW254FW+/ZRZj61MKOAxOI/dvFz/qVDbo9AzW6/p29ePlW0dPP1Ceyv33Bc+H4vIJmR2HqsSXjo3jw+nN9aito19TZObOVw1THSgUcLeHKWp2vCdOy+VCmesEFw4YSvvYoBtd75e/19OEDAzwzbjcvtmT6Knt/Ztm5h9bTq+CZGpmby8YbWxaKsvDeNSlypLkvbAfBaDs/2FtKJ5gaGRl6TIxTMyo8M9P2zCWbnaM038m4U2ZBlPHnpnXLfPx86Zwfqpg4rvvqdCwq2EW264SmgeIefeU5UUKUkVaRkbnYZWVSbmKbi91/dJ+2W7NEvmq0rbVvJxhIE40s/ttN1/KWkVSiTFBJ7fN6Sj5mOYaKnZ/ykWp44NtNCZ5GTwYsJ1t+LsoWuyhvDX91hxnQwWVPvFx9fJJvf+k17X/KsZi95n10zpIo0x1b7B1TYsNyrWXQ3D4uIESHsLarl7l1YsZurHUYcS7NOyHXoZuEbBY6WBUJOVUtm+VoYw93kgYjjUSPnAwveG11urxWcWC2zAy+mTY1uMxvF/sdLyo5rNsNN3lS7oaqYbZm0Hxzz9EyLrYa5coCgADC1f+DeKvHJvOvaUu+AHjmPHwB4F1rb8T/hx7gM2gEMEYBIPCJgyYzEF4/4wNyrJH8pRoB5/SBb+5hJl8AAUZcxniXGyEANsqCBfPrBkN5gPNQgBBqHiiseQUMyPRh3BAERrjHSTImODEyBFgKHUOCbcQhpHhLH0ZNCcylEgqwsJXjoiAh4zPjwY07X2aykBGYiRbBTCwMLgwGFiY8M2m4WKgIcHrrcAJ8ZCxcPGbsbK342HgCuHJFQsFgAlgucFgY5GGZ5DCEKFPhmCwei6t/d57PnQf7ySozETBQRLRxem0GAhIBOv7b7ly4ceMpUBqiaHiBXtOd7bAcI5yHgo2ZGQ7DBM+1rbo74IlfAk6P4mSs5msYTJIAoDcSTwA=) format("woff2");
+  }
   :root {
     --paper: #f7f3ea;
     --ink: #22301f;
@@ -68,23 +77,33 @@
     padding: 16px 20px 12px;
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
   }
-  /* Logo: roundel + wordmark. The wordmark is the biggest type on the page after the hero. */
-  .logo { display: flex; align-items: center; gap: 14px; min-width: 0; }
-  .logo .mark { width: 52px; height: 52px; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(34,48,31,0.22)); }
+  /* Logo: roundel + wordmark, set in EB Garamond — an old-style face where the strokes feel
+     cut rather than drawn, unlike the Didone we had. Title case, not small caps: caps of any
+     kind read as initials, and TOGA is an anagram of GOAT, so it looks like a puzzle. A
+     capital T and a lowercase rest reads unmistakably as the word. The double hairline above
+     is the bookplate device. */
+  .logo { display: flex; align-items: center; gap: 15px; min-width: 0; }
+  .logo .mark { width: 50px; height: 50px; flex-shrink: 0; }
   .wordmark {
-    font-family: "Playfair Display", Georgia, serif;
-    font-size: 40px; font-weight: 800; letter-spacing: 1.5px; line-height: 1;
-    color: var(--green); text-transform: uppercase;
-    /* gold hairline under the name — the "ornament" made structural */
-    background: linear-gradient(var(--gold), var(--gold)) no-repeat 0 100% / 100% 2px;
-    padding-bottom: 3px; display: inline-block;
+    font-family: "Toga Mark", "EB Garamond", Georgia, serif;
+    font-size: 41px; font-weight: 600; letter-spacing: 0.2px; line-height: 1;
+    color: var(--green); display: inline-block; margin: 0;
   }
+  /* inline-block so the rule measures the NAME, not the type block — otherwise it stretches
+     to the tagline's width and reads as a header divider instead of a caption. */
+  .wordmark::before {
+    content: ""; display: block; height: 4px; margin-bottom: 6px;
+    border-top: 2px solid var(--gold); border-bottom: 1px solid var(--gold);
+  }
+  .brand-region:empty { display: none; }
   .brand-region { font-family: "Inter", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: none; color: var(--muted); vertical-align: 6px; margin-left: 6px; }
   .tagline-hdr { font-size: 11.5px; color: var(--muted); margin-top: 6px; letter-spacing: 0.2px; }
   .tagline-hdr .sep { color: var(--gold); margin: 0 4px; }
   @media (max-width: 520px) {
-    .wordmark { font-size: 32px; }
-    .logo .mark { width: 44px; height: 44px; }
+    .wordmark { font-size: 34px; letter-spacing: 0.2px; }
+    .logo .mark { width: 42px; height: 42px; }
+    .logo { gap: 12px; }
+    .wordmark::before { height: 3px; margin-bottom: 6px; border-top-width: 1.5px; }
     .tagline-hdr .more { display: none; } /* drop the long half on narrow screens */
     .tagline-hdr { font-size: 11px; }
   }
@@ -111,7 +130,7 @@
     box-shadow: var(--shadow); padding: 18px 20px 16px; width: 100%; max-width: 440px;
   }
   .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .sheet-head h3 { font-family: "Playfair Display", Georgia, serif; font-size: 20px; color: var(--green); }
+  .sheet-head h3 { font-family: "EB Garamond", Georgia, serif; font-size: 20px; color: var(--green); }
   .sheet-p { font-size: 13px; color: var(--ink); line-height: 1.5; margin-bottom: 12px; }
   .sheet-fine { font-size: 10.5px; color: var(--muted); margin-top: 12px; }
   .loc-current { font-size: 12.5px; color: var(--muted); font-style: italic; margin-bottom: 10px; }
@@ -128,8 +147,8 @@
   .loc-current .muted { color: var(--muted); font-weight: 400; }
   .welcome-card { text-align: center; padding-top: 22px; }
   .welcome-card .mark-lg { width: 72px; height: 72px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(34,48,31,0.25)); }
-  .welcome-card .wordmark { font-size: 34px; margin: 0 auto; }
-  .welcome-lead { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: 15px; color: var(--ink); margin: 6px 0 12px; }
+  .welcome-card .wordmark { font-size: 34px; display: inline-block; margin: 0; }
+  .welcome-lead { font-family: "EB Garamond", Georgia, serif; font-style: italic; font-size: 15px; color: var(--ink); margin: 6px 0 12px; }
   .welcome-joined:empty { display: none; }
   .welcome-joined { color: var(--green); font-weight: 600; }
   .welcome-ok { margin-top: 6px; background: var(--green); color: var(--card); border-color: var(--green); padding: 10px 22px; }
@@ -192,7 +211,7 @@
   }
   .swatch > *:not(.glass) { position: relative; z-index: 1; }
   .swatch .team {
-    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-family: "EB Garamond", Georgia, serif; font-style: italic;
     font-size: 15px; font-weight: 500; opacity: 0.86; margin: -2px 0 6px; letter-spacing: 0.2px;
   }
   .swatch .team:empty { display: none; }
@@ -210,10 +229,10 @@
   }
   .theme-banner.soon { opacity: 0.85; font-size: 12px; }
   .theme-banner .t-emoji { font-size: 16px; }
-  .theme-banner b { font-family: "Playfair Display", Georgia, serif; font-weight: 600; color: var(--day-ink); }
+  .theme-banner b { font-family: "EB Garamond", Georgia, serif; font-weight: 600; color: var(--day-ink); }
   .theme-banner .t-note { color: var(--muted); font-style: italic; }
   .swatch .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
-  .swatch .name { font-family: "Playfair Display", Georgia, serif; font-size: 44px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; margin: 7px 0 4px; }
+  .swatch .name { font-family: "EB Garamond", Georgia, serif; font-size: 47px; font-weight: 600; letter-spacing: 0; line-height: 1; margin: 7px 0 4px; }
   .swatch .hex { font-size: 12px; font-weight: 600; opacity: 0.75; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
   .swatch .tagline { font-size: 12px; margin-top: 9px; opacity: 0.82; font-weight: 500; }
   /* Flannel note: a small pill inside the hero, in the hero's own text color */
@@ -256,7 +275,7 @@
   .fit-piece.hero-piece { border-right: 1px solid rgba(var(--day-rgb), 0.20); padding-right: 8px; }
   .fit-piece.hero-piece .garment { width: 52px; height: 52px; }
   .fit-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--day-ink); opacity: 0.8; }
-  .fit-name { font-family: "Playfair Display", Georgia, serif; font-size: 15px; font-weight: 600; line-height: 1.1; margin-top: 2px; }
+  .fit-name { font-family: "EB Garamond", Georgia, serif; font-size: 15px; font-weight: 600; line-height: 1.1; margin-top: 2px; }
   .fit-piece.hero-piece .fit-name { font-size: 20px; }
   .fit-alias {
     font-size: 10px; color: var(--muted); line-height: 1.25; margin-top: 3px; font-style: italic;
@@ -292,13 +311,13 @@
 
   /* ------------------------------------------------ Verse */
   .verse {
-    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-family: "EB Garamond", Georgia, serif; font-style: italic;
     font-size: 19px; line-height: 1.45; color: var(--ink);
     white-space: pre-line; text-align: center; padding: 14px 10px 6px;
     text-wrap: balance;
   }
   .verse-tail {
-    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-family: "EB Garamond", Georgia, serif; font-style: italic;
     font-size: 13.5px; color: var(--day-ink); text-align: center; opacity: 0.9;
   }
   .verse-tail:empty { display: none; }
@@ -346,7 +365,7 @@
   .mcell.themed { border-style: double; border-width: 3px; padding: 1px; }
 
   footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 20px; }
-  footer .brand { font-family: "Playfair Display", Georgia, serif; font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin: 6px 0 2px; }
+  footer .brand { font-family: "Toga Mark", "EB Garamond", Georgia, serif; font-size: 19px; font-weight: 600; letter-spacing: 0.3px; color: var(--green); margin: 6px 0 2px; }
   footer .fine { font-size: 10.5px; letter-spacing: 1px; }
   footer .mark-sm { width: 30px; height: 30px; opacity: 0.9; }
 </style>
@@ -358,38 +377,26 @@
      and rasterized for the app icon. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <!-- fold shading: a rounded cylinder — dark edge, bright ridge, deep crease -->
-    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0"    stop-color="#000" stop-opacity="0.35"/>
-      <stop offset="0.18" stop-color="#000" stop-opacity="0.00"/>
-      <stop offset="0.42" stop-color="#fff" stop-opacity="0.42"/>
-      <stop offset="0.62" stop-color="#fff" stop-opacity="0.00"/>
-      <stop offset="1"    stop-color="#000" stop-opacity="0.50"/>
-    </linearGradient>
     <clipPath id="roundel"><circle cx="32" cy="32" r="29"/></clipPath>
     <symbol id="toga-mark" viewBox="0 0 64 64">
       <circle cx="32" cy="32" r="30" fill="#22301f"/>
       <g clip-path="url(#roundel)">
-        <!-- four hanging folds: gathered at the shoulder, each swaying softly as it falls -->
-        <path d="M4 32 C6 20 14 14 24 12 C22 28 26 44 22 64 L-2 64 Z" fill="#4E8A5A"/>
-        <path d="M4 32 C6 20 14 14 24 12 C22 28 26 44 22 64 L-2 64 Z" fill="url(#fold)"/>
-        <path d="M20 12 C24 8 30 6 36 8 C33 26 38 44 36 64 L16 64 C20 46 18 28 20 12 Z" fill="#E3B23C"/>
-        <path d="M20 12 C24 8 30 6 36 8 C33 26 38 44 36 64 L16 64 C20 46 18 28 20 12 Z" fill="url(#fold)"/>
-        <path d="M34 8 C40 6 46 8 50 14 C50 30 46 46 52 64 L32 64 C34 46 30 28 34 8 Z" fill="#C4453A"/>
-        <path d="M34 8 C40 6 46 8 50 14 C50 30 46 46 52 64 L32 64 C34 46 30 28 34 8 Z" fill="url(#fold)"/>
-        <path d="M48 12 C54 16 60 22 62 32 L68 64 L48 64 C46 46 52 28 48 12 Z" fill="#3A6FA8"/>
-        <path d="M48 12 C54 16 60 22 62 32 L68 64 L48 64 C46 46 52 28 48 12 Z" fill="url(#fold)"/>
-        <!-- the gather: a knot of cloth at the shoulder where the folds meet -->
-        <path d="M21 10 C27 3 41 3 47 10 C41 15 27 15 21 10 Z" fill="#f7f3ea"/>
-        <path d="M21 10 C27 3 41 3 47 10 C41 15 27 15 21 10 Z" fill="url(#fold)" opacity="0.7"/>
-        <path d="M27 9 C31 7 37 7 41 9" stroke="#22301f" stroke-width="0.9" opacity="0.5" fill="none"/>
-        <!-- crease lines between folds, following the sway -->
-        <path d="M24 12 C22 28 26 44 22 64 M36 8 C33 26 38 44 36 64 M50 14 C50 30 46 46 52 64" stroke="#22301f" stroke-width="1.2" opacity="0.55" fill="none"/>
-        <!-- soft top light, and the cloth's own shadow pooling at the bottom -->
-        <ellipse cx="30" cy="20" rx="22" ry="12" fill="#fff" opacity="0.10"/>
-        <ellipse cx="32" cy="66" rx="34" ry="14" fill="#000" opacity="0.28"/>
+        <!-- Cloth hanging from a gathered rail: uneven fold widths, a wave-cut hem. Equal
+             saturated wedges filling a circle read as a beach ball, and the knot at the top
+             read as its valve — the rail is what fixes that. -->
+        <path d="M8 17 C7 27 9 38 8 47 Q14 51 21 47 C22 37 21 27 22 17 Z" fill="#4E8A5A"/>
+        <path d="M22 17 C21 27 23 38 21 48 Q27 52 33 48 C35 37 32 27 33 17 Z" fill="#E3B23C"/>
+        <path d="M33 17 C32 27 35 39 33 48 Q39 52 45 48 C47 37 44 27 45 17 Z" fill="#C4453A"/>
+        <path d="M45 17 C44 27 47 38 45 47 Q51 51 57 47 C58 37 56 27 57 17 Z" fill="#3A6FA8"/>
+        <!-- the rail the cloth is folded over -->
+        <path d="M4 12 L60 12 L60 17.5 L4 17.5 Z" fill="#f7f3ea"/>
+        <path d="M4 18.2 L60 18.2" stroke="#22301f" stroke-width="1" opacity="0.4" fill="none"/>
+        <!-- creases between folds — flat and woodcut-like, no spherical shading -->
+        <path d="M22 17 C21 27 23 38 21 48 M33 17 C32 27 35 39 33 48 M45 17 C44 27 47 38 45 47" stroke="#22301f" stroke-width="0.8" opacity="0.32" fill="none"/>
       </g>
-      <circle cx="32" cy="32" r="30" fill="none" stroke="#b3862f" stroke-width="2.5"/>
+      <!-- one gold ring. A finer second ring inside looked like a stray reflection: cream read
+           over the dark disc but vanished over the cloth, so only arcs showed. -->
+      <circle cx="32" cy="32" r="30" fill="none" stroke="#b3862f" stroke-width="2.4"/>
     </symbol>
   </defs>
 </svg>
