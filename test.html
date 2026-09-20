@@ -268,7 +268,6 @@ function run() {
   group("outfit · the pairing rules");
   const trousers = new Set(A.BOTTOMS.map(b => b.label));
   const pieces = f => [f.hero].concat(f.pair);              // everything shown today
-  const partners = f => f.pair;                             // the options for the other role
   test("an outfit always fills the day's piece and two options", () => {
     for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
       const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
@@ -303,8 +302,10 @@ function run() {
     for (let i = 0; i < SPAN; i++) for (const mode of ["top", "bottom"]) {
       const d = dayAt(i), r = A.colorForDate(d), f = A.outfitFor(d, r, mode);
       if (A.isQuiet(r.shade.name)) continue;
-      for (const p of partners(f)) ok(A.isQuiet(p.label) || trousers.has(p.label),
-        r.shade.name + " got loud option " + p.label + " on " + d.toDateString());
+      // trousers are all behaved by construction, so only the top is held to the quiet rule
+      const onBottoms = f.pairRole === "bottom";
+      for (const p of f.pair) ok(onBottoms ? (A.isQuiet(p.label) || trousers.has(p.label)) : A.isQuiet(p.label),
+        r.shade.name + " got loud " + f.pairRole + " option " + p.label + " on " + d.toDateString());
     }
   });
   test("trouser options aren't two of the same register where a choice exists", () => {
@@ -318,6 +319,19 @@ function run() {
     }
     ok(mixed > 0, "never produced a mixed-register pair in two years");
     ok(same / (same + mixed) < 0.85, "options are same-register " + Math.round(100 * same / (same + mixed)) + "% of the time");
+  });
+  test("no shade list suggests denim (office dress codes ban it)", () => {
+    const banned = /denim|jean|indigo|dark wash/i;
+    const lists = A.PALETTE.map(c => [c.label, c.qualifies]).concat(A.BOTTOMS.map(b => [b.label, b.alias]));
+    for (const [name, text] of lists) ok(!banned.test(text), name + " suggests denim: " + text);
+    ok(!banned.test(doc.body.innerText), "the word denim appears on screen");
+  });
+  test("the day's own color is never offered as the accompanying piece", () => {
+    for (let i = 0; i < SPAN; i++) for (const mode of ["top", "bottom"]) {
+      const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
+      if (f.mono) continue;
+      for (const p of f.pair) ok(p.label !== f.hero.label, p.label + " offered alongside itself on " + d.toDateString());
+    }
   });
   test("Monochrome Week is the same color top and toe", () => {
     let seen = 0;

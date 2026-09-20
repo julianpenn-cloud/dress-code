@@ -529,7 +529,7 @@ const PALETTE = [
   { label:"Grey",     hex:"#8A8D8F", team:"The Stoics",       curve:[4, 4, 3, 2, 2, 1, 1, 1, 2, 3, 4, 4], temp:"cool",    tone:"mid",   qualifies:"charcoal, slate, silver, heather, stone, dove" },
   { label:"Black",    hex:"#2E2E2E", team:"The Night Watch",  curve:[4, 3, 3, 2, 1, 1, 1, 1, 2, 3, 3, 4], temp:"neutral", tone:"dark",  qualifies:"charcoal, graphite, onyx, dark grey" },
   { label:"Brown",    hex:"#7A5230", team:"The Terra Firma",  curve:[3, 3, 2, 1, 1, 1, 1, 1, 3, 4, 4, 3], temp:"warm",    tone:"dark",  qualifies:"tan, camel, khaki, chocolate, taupe, chestnut" },
-  { label:"Blue",     hex:"#3A6FA8", team:"The Tide",         curve:[2, 2, 3, 3, 3, 4, 4, 4, 3, 2, 2, 2], temp:"cool",    tone:"mid",   qualifies:"navy, sky, steel, denim, powder, cobalt" },
+  { label:"Blue",     hex:"#3A6FA8", team:"The Tide",         curve:[2, 2, 3, 3, 3, 4, 4, 4, 3, 2, 2, 2], temp:"cool",    tone:"mid",   qualifies:"navy, sky, steel, azure, powder, cobalt" },
   { label:"Red",      hex:"#C4453A", team:"The Ember",        curve:[2, 3, 2, 2, 2, 3, 3, 3, 3, 3, 2, 3], temp:"warm",    tone:"mid",   qualifies:"brick, scarlet, cherry, crimson, tomato" },
   { label:"Green",    hex:"#4E8A5A", team:"The Laurel",       curve:[1, 1, 2, 3, 4, 3, 3, 3, 3, 3, 2, 2], temp:"cool",    tone:"mid",   qualifies:"olive, forest, emerald, moss, pine, kelly" },
   { label:"Purple",   hex:"#8E63C4", team:"The Heather",      curve:[2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2], temp:"cool",    tone:"mid",   qualifies:"lilac, lavender, orchid, mauve, violet, grape" },
@@ -976,7 +976,10 @@ const tomorrowOf = date => new Date(date.getFullYear(), date.getMonth(), date.ge
 //  Never two loud pieces. The toggle only decides which end wears the color.
 // ---------------------------------------------------------------
 const BOTTOMS = [
-  { label:"Denim",    hex:"#3C5A78", neutral:true,  alias:"denim, indigo, dark wash, jean blue",   curve:[4,4,4,4,4,4,4,4,4,4,4,4] },
+  //  Blue, not denim: plenty of offices ban denim outright, so the trouser blue is the
+  //  dress kind — navy and dress blues. The label also collides with the palette's Blue
+  //  on purpose, so the day's own color is never suggested twice.
+  { label:"Blue",     hex:"#34527E", neutral:true,  alias:"navy, blue, steel, slate", curve:[4,4,4,4,4,4,4,4,4,4,4,4] },
   { label:"Charcoal", hex:"#3A3D40", neutral:true,  alias:"charcoal, graphite, dark grey, slate",  curve:[4,4,3,2,2,2,2,2,3,4,4,4] },
   { label:"Black",    hex:"#242424", neutral:true,  alias:"black, jet, ink",                       curve:[4,3,3,2,2,2,2,2,2,3,3,4] },
   { label:"Khaki",    hex:"#B9A57C", neutral:true,  alias:"khaki, tan, sand, stone, chino, beige",  curve:[1,1,2,3,4,4,4,3,2,1,1,1] },
@@ -1006,7 +1009,7 @@ function bottomPool(d, excludeLabel, min) {
   const pool = BOTTOMS.filter(b => bWeight(b, d) > 0 && b.label !== excludeLabel);
   return pool.length >= (min || 1) ? pool : BOTTOMS.filter(b => b.label !== excludeLabel);
 }
-//  Two trousers to choose between — you may own the denim but not the khaki. All of
+//  Two trousers to choose between — you may own the blue but not the khaki. All of
 //  BOTTOMS is trouser-plausible by construction; the second option leans away from the
 //  first's register so the pair isn't two neutrals saying the same thing.
 function bottomPair(d, excludeLabel) {
