@@ -21,13 +21,15 @@
 <style>
   /* The wordmark's own font: Cormorant 700 — the display cut of the same Garamond
      lineage, which tolerates far more condensation than the text cut. Subset to the four glyphs
+     BUT WITH KERNING: --layout-features='' strips the GPOS lookups, and To is the one pair
+     in "Toga" that has a kern. Without it the T floats ~4.6px away from the o
      and inlined (~1.7KB base64). The brand must not depend on a CDN — blocked, offline or
      slow, "Toga" would otherwise fall back to Georgia. Four glyphs, because the name is
      four letters. The rest of the page still loads EB Garamond normally. */
   @font-face {
     font-family: "Toga Mark";
     font-style: normal; font-weight: 700; font-display: swap;
-    src: url(data:font/woff2;base64,d09GMgABAAAAAASsAA8AAAAACBAAAARVAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwwBmA/U1RBVEQATBEICoVchG4BNgIkAxQLDAAEIAWEGgcgG5MGCK4GHGOKfoh7OIw64vDESJfU5Tkef5GCJ7Krf1Xds+jZO0cAI39LkRhJQSaGEENGf47kytkH5APUvaGQVUqXSZmhcfkkBzCU1TUl8K7OjEZaeiiUhbrETLlsL4TkruQM/ff/3zv9U7y5BBNPqP0eNaf+qHMe3uYA64sF9D/WxrEBAyxKNEDINhtmzXplmBvXGCJ79vj1i0SAGAqgCII114EjAzNQh04pOaCABQgGAExdgRvSn9MZL+HSwWwGhs8Esx6a9Va+6wN4oNukegC623lkFF58RzkLnv8eXw2TiAGwzOH/78B2lXQEIACyTmoQICc5GUGBVEMVgMWTyXyk8A0mhuLmYxO/RcJ6AcAgqMRHQwUMkIp4LClDPYCLgMoAMJBgTRj03gzOBwUGILNggckEADymXX0UREFqKWS7sHr7aKciA08N1SSm2uhtDzvm96KlGSWJxlpgzcGccsGHn6T6QH9fC+zeVnvAGqD3uOjA7CDomqE9ZVjJ7gO9Z1wFLxxB6LXD85jdDpwj5NrpZSmPGuxfZLS8pi9elUDZNwjWnChD/X19OmMEjD2r79bNmT1VLS/odzf0ynd6wePTcOddM7d3cZQqyDw7l7H143vd1ceH2Zt6bpG4vdMe3H2cZ01eoWGL45uMvSv58MOrIp1PgxsHfCSBVVhzepafvvKMDPtgzbreiX0lMKszcKeK0U8lpgrKfL4MfkLZjXr/IoXMq6HRnAyDRKnt0lJXsr2WrO+5LkeinTq/U7ZUsSYhXdq32QY3HVXjNL5Xv6RgnSSK/gvpo2OBdMxkVKIyQyzKvAvnB6t/cYo3EARhXi0uOe66bL+rMEV91d0My1eRMFdbb/BbOcvY5X3w1LS3ttrn2rrIAE/zDHMbZvfs/LAYgyVSkq5IS+HEv5nkVrWy2RN2LQvz0bWgZQ0fMDph1jY20sc66K1KNns7+l6YUJuba/RnaKo0nMR3GPn7687f+ewTYgOKLcyXvTtZJ5g5kdKNbN3jLeqti+PTTN8wP23+gAQ7vQA7y2Ihvi/730JsNSV+bp59gZbyvBv8jMX7Az0rAnzskyM9UvXtIoqC3Ut9Q0NKcF63Bn1qfKINpiun2CE2McaSOAAAAlioHcD9Opre/MWYrwAvVq6mAvD64NnP//3/ZLOmHUQIBUDgjeHNEFUxA0H9oie/GaXroUSOQ4lcJ16+kQMCPC4jHPOR6fVxBXy2OXU2ChxDIFohi1mtEuGa1tDMU62lREJajzSp0oQoki5WosRk1kh4XETi2vyy58TjZBO0hwUbCVwokCDDxwIvPPDEFwtyGjTBA+e4MEwOA5NQBiOKmgoBHBmJAD5kFPGIwAESFBYEYHGDIQsG7kSDERZDUuARB2u0GA/3wOmOKUIpuXFUG9LB44MbHhchmDTSRSSW4BGtJeRKfQSFLKSQByG9J/mIRfQg4kr5EJrKRPhgIAUcWbBgJIhJo1wFUgc=) format("woff2");
+    src: url(data:font/woff2;base64,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) format("woff2");
   }
   :root {
     --paper: #f7f3ea;
@@ -87,6 +89,12 @@
      capital T and a lowercase rest reads unmistakably as the word. The double hairline above
      is the bookplate device. */
   .logo { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  /* The capital T next to a lowercase o reads loose however good the font's kerning is: the T's
+     arm ends flush with the o, so the o sits beside the arm instead of tucked under it. Measured
+     at 150px, the T-to-o white space is 64px against 15-23px between the lowercase pairs, and
+     the arm overhangs the o by only 3px. Pulling the o 0.08em closer tucks it under the arm.
+     margin-right, not letter-spacing, so only this one pair tightens. */
+  .wordmark .cap, .brand .cap { margin-right: -0.08em; }
   .logo .mark { width: 36px; height: 46px; flex-shrink: 0; }
   /* Narrow and tall. Measured: no classic serif is meaningfully narrower than another — the
      whole field sits within 2% of the same width/height ratio — so the proportions come from
@@ -405,7 +413,7 @@
   <div class="logo">
     <svg class="mark" aria-hidden="true"><use href="#toga-mark"/></svg>
     <div>
-      <h1 class="wordmark">Toga<span class="brand-region" id="brandRegion"></span></h1>
+      <h1 class="wordmark"><span class="cap">T</span>oga<span class="brand-region" id="brandRegion"></span></h1>
       <div class="tagline-hdr">Optional Dress Code<span class="more"> <span class="sep">·</span> one color a day, wear it if it's easy</span></div>
     </div>
   </div>
@@ -469,7 +477,7 @@
 
   <footer>
     <svg class="mark-sm" aria-hidden="true"><use href="#toga-mark"/></svg>
-    <div class="brand">Toga</div>
+    <div class="brand"><span class="cap">T</span>oga</div>
     <div class="fine">One color a day. Wear it if it's easy. · ❄️ 🌱 ☀️ 🍂 ☾</div>
   </footer>
 </div>
@@ -501,7 +509,7 @@
 <div class="sheet" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="sheet-card welcome-card">
     <svg class="mark-lg" aria-hidden="true"><use href="#toga-mark"/></svg>
-    <h3 id="welcomeTitle" class="wordmark">Toga</h3>
+    <h3 id="welcomeTitle" class="wordmark"><span class="cap">T</span>oga</h3>
     <p class="welcome-lead">One color a day, chosen by the season.</p>
     <p class="sheet-p">If something in your closet is close, wear it. If not, ignore it. That's the whole thing — one less decision in the morning, and everyone using Toga is quietly matching.</p>
     <p class="sheet-p welcome-joined" id="welcomeJoined"></p>

@@ -234,6 +234,14 @@ function run() {
     ok(/Toga Mark/.test(fam), "wordmark is not using the inlined face: " + fam);
     ok(app.document.fonts.check('700 56px "Toga Mark"'), "the inlined face did not load");
   });
+  test("the inlined wordmark font keeps its kerning", () => {
+    // subsetting with an empty --layout-features strips the GPOS lookups, and "To" is the one
+    // kerned pair in "Toga": without it the T sits ~4.6px too far from the o at header size
+    const c = doc.createElement("canvas").getContext("2d");
+    c.font = '700 100px "Toga Mark"';
+    const kern = (c.measureText("To").width - c.measureText("T").width - c.measureText("o").width) / 100;
+    ok(kern < -0.02, "the wordmark font lost its kerning (To = " + kern.toFixed(4) + "em) — the T will float");
+  });
   test("the wordmark is title case — not caps, not small caps", () => {
     // caps of any kind read as initials, and TOGA is an anagram of GOAT
     const cs = app.getComputedStyle(doc.querySelector(".wordmark"));
