@@ -247,7 +247,13 @@ function run() {
     const cs = app.getComputedStyle(doc.querySelector(".wordmark"));
     eq(cs.textTransform, "none", "a text-transform is making the name read as initials");
     eq(cs.fontVariantCaps, "normal", "small caps still reads as initials");
-    eq(doc.querySelector(".wordmark").textContent.trim(), "Toga", 'the name should be exactly "Toga"');
+    // the region rides inside the wordmark ("Toga · Minneapolis–St. Paul, MN"), so strip it
+    // before comparing — otherwise this test silently depends on whether a zip is stored,
+    // which is exactly the state a real user is in and a clean browser is not
+    const h1 = doc.querySelector(".wordmark");
+    const reg = h1.querySelector(".brand-region");
+    const name = h1.textContent.replace(reg ? reg.textContent : "", "").trim();
+    eq(name, "Toga", 'the name should be exactly "Toga"');
   });
   test("the wordmark is narrower than it is naturally set", () => {
     // no classic serif is meaningfully narrower than another, so the proportions come from
