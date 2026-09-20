@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toga · tests</title>
+<!--
+  The Toga test suite. No build step, no dependencies, no server config: it loads the
+  REAL index.html in a same-origin iframe and asserts against the deployed artifact, so
+  the tests can never drift from the product.
+
+  Run it locally:   python -m http.server 8766  →  http://127.0.0.1:8766/test.html
+  Run it live:      https://julianpenn-cloud.github.io/toga/test.html
+  Headless:         window.__toga reads { passed, failed, failures } once done.
+
+  What it guards: the recurrence in colorForDate (order-independence catches cache-key
+  bugs — the DST collision was found exactly this way), palette/verse/theme agreement,
+  seasonal gates, WCAG contrast on the daily paper, and the outfit rules.
+-->
+<style>
+  :root { --ink:#22301f; --paper:#f7f3ea; --card:#fffdf7; --line:#e6ddc9; --green:#2f4a36; --gold:#b3862f; }
+  body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--paper); color: var(--ink);
+         margin: 0; padding: 22px 18px 60px; font-size: 13px; line-height: 1.5; }
+  h1 { font-size: 15px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 4px; }
+  .sub { color: #7c826f; margin-bottom: 18px; }
+  .banner { padding: 14px 16px; border-radius: 12px; font-weight: 700; font-size: 15px; margin-bottom: 18px; border: 1px solid var(--line); }
+  .banner.pass { background: #e8f0e6; border-color: #b9cdb4; color: #24401f; }
+  .banner.fail { background: #fbe9e7; border-color: #e6b3ac; color: #7a2a20; }
+  .banner.run  { background: var(--card); }
+  .suite { margin: 18px 0 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 10.5px; color: var(--gold); }
+  .t { padding: 3px 0 3px 22px; position: relative; }
+  .t::before { position: absolute; left: 0; font-weight: 700; }
+  .t.ok::before { content: "✓"; color: #3f7a34; }
+  .t.no::before { content: "✗"; color: #b3402f; }
+  .t.no { color: #7a2a20; }
+  .err { color: #7a2a20; background: #fbe9e7; border-radius: 6px; padding: 6px 8px; margin: 3px 0 6px; white-space: pre-wrap; }
+  .detail { color: #7c826f; }
+  iframe { position: absolute; width: 1180px; height: 900px; left: -4000px; top: 0; border: 0; }
+</style>
+</head>
+<body>
+<h1>Toga tests</h1>
+<div class="sub" id="sub">loading the app…</div>
+<div class="banner run" id="banner">running…</div>
+<div id="out"></div>
+<iframe id="app" src="index.html" title="the app under test"></iframe>
+
+<script>
+// ---------------------------------------------------------------- harness
+const out = document.getElementById("out");
+const res = [];
+let suite = "";
+function group(name) { suite = name; const h = document.createElement("div"); h.className = "suite"; h.textContent = name; out.appendChild(h); }
+function test(name, fn) {
+  const row = document.createElement("div");
+  try { fn(); row.className = "t ok"; row.textContent = name; res.push({ suite, name, ok: true }); }
+  catch (e) { row.className = "t no"; row.textContent = name; res.push({ suite, name, ok: false, err: String(e && e.message || e) });
+    out.appendChild(row); const box = document.createElement("div"); box.className = "err"; box.textContent = res[res.length-1].err; out.appendChild(box); return; }
+  out.appendChild(row);
+}
+const ok  = (v, msg) => { if (!v) throw new Error(msg || "expected truthy, got " + JSON.stringify(v)); };
+const eq  = (a, b, msg) => { if (a !== b) throw new Error((msg ? msg + " — " : "") + "expected " + JSON.stringify(b) + ", got " + JSON.stringify(a)); };
+const near = (a, b, tol, msg) => { if (Math.abs(a-b) > tol) throw new Error((msg ? msg + " — " : "") + "expected ~" + b + " ±" + tol + ", got " + a); };
+
+// ---------------------------------------------------------------- run
+const frame = document.getElementById("app");
+frame.addEventListener("load", run, { once: true });
+
+function run() {
+  const app = frame.contentWindow;
+  const A = app.TOGA;                              // the app's published test surface
+  const doc = frame.contentDocument;
+  const t0 = performance.now();
+
+  // don't disturb whatever the reader had stored
+  const saved = {};
+  for (const k of ["toga.mode", "toga.region", "toga.wx", "toga.seen"]) saved[k] = app.localStorage.getItem(k);
+
+  const DAY = (y, m, d) => new Date(y, m, d);
+  const SPAN = 730;
+  const dayAt = i => DAY(2026, 0, 1 + i);
+  const all = Array.from({ length: SPAN }, (_, i) => dayAt(i));
+  const colors = all.map(d => A.colorForDate(d).shade.name);
+  const monthsOf = {};
+  colors.forEach((c, i) => (monthsOf[c] = monthsOf[c] || new Set()).add(all[i].getMonth()));
+
+  try {
+
+  // ---------------------------------------------------------------- engine
+  group("engine · the pick");
+  test("page under test loaded with no JS errors", () => {
+    ok(A.colorForDate && A.PALETTE && A.outfitFor, "engine globals missing");
+  });
+  test("a date always yields the same color (determinism)", () => {
+    for (let i = 0; i < SPAN; i += 7) eq(A.colorForDate(dayAt(i)).shade.name, colors[i]);
+  });
+  test("the answer doesn't depend on the time of day", () => {
+    for (let i = 0; i < SPAN; i += 3) {
+      const d = dayAt(i), at9 = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 21, 45);
+      eq(A.colorForDate(at9).shade.name, colors[i], d.toDateString());
+    }
+  });
+  test("the answer doesn't depend on the order days are asked for (cache integrity)", () => {
+    // This is the test that catches cache-key collisions and un-normalised hashing:
+    // asking in a different order must never change a single answer.
+    const index = new Map(all.map((d, i) => [d.getTime(), i]));
+    const ask = (d) => eq(A.colorForDate(d).shade.name, colors[index.get(d.getTime())], d.toDateString());
+    for (let i = SPAN - 1; i >= 0; i--) ask(all[i]);                 // backwards
+    for (let i = 0, x = 12345; i < SPAN; i++) {                      // scrambled
+      x = (x * 1103515245 + 12345) & 0x7fffffff; ask(all[x % SPAN]);
+    }
+    for (let i = 0; i < SPAN; i += 2) ask(all[i]);                   // and mixed
+  });
+  test("no two adjacent days share a color (unless a holiday intervenes)", () => {
+    for (let i = 1; i < SPAN; i++) {
+      const prev = A.colorForDate(dayAt(i - 1)), cur = A.colorForDate(dayAt(i));
+      if (prev.holiday || cur.holiday) continue;
+      if (prev.shade.name === cur.shade.name) throw new Error(prev.shade.name + " twice: " + dayAt(i - 1).toDateString() + " → " + dayAt(i).toDateString());
+    }
+  });
+  test("a holiday always wins its date", () => {
+    for (const h of A.HOLIDAYS) {
+      const probe = h.when ? DAY(2026, h.when[0] - 1, h.when[1]) : DAY(2026, h.range.from[0] - 1, h.range.from[1]);
+      const r = A.colorForDate(probe);
+      ok(r.holiday, h.name + " did not take " + probe.toDateString());
+      ok(A.byLabel(r.shade.name), h.name + " resolved to an unknown color " + r.shade.name);
+    }
+  });
+  test("during a theme week the pick comes only from that theme", () => {
+    for (let i = 0; i < SPAN; i++) {
+      const r = A.colorForDate(dayAt(i));
+      if (r.holiday || !r.theme) continue;
+      ok(r.theme.colors.includes(r.shade.name), r.theme.name + " produced " + r.shade.name);
+    }
+  });
+  test("a color never appears in a month its curve forbids", () => {
+    for (const c of A.PALETTE) {
+      for (const m of monthsOf[c.label] || []) {
+        const next = (m + 1) % 12;
+        ok(c.curve[m] > 0 || c.curve[next] > 0, c.label + " appeared in month " + (m + 1) + " but its curve is 0 for that month and the next");
+      }
+    }
+  });
+  test("every palette color is reachable in a year (no dead colors)", () => {
+    for (const c of A.PALETTE) {
+      let n = 0; for (let i = 0; i < 365; i++) if (colors[i] === c.label) n++;
+      ok(n >= 3, c.label + " only appeared " + n + " times in a year");
+    }
+  });
+  test("weekends get a real color too (not a blank)", () => {
+    for (let i = 0; i < SPAN; i++) {
+      const d = dayAt(i); if (d.getDay() !== 0 && d.getDay() !== 6) continue;
+      ok(A.byLabel(A.colorForDate(d).shade.name), "weekend " + d.toDateString() + " has no color");
+    }
+  });
+
+  // ---------------------------------------------------------------- helpers
+  group("engine · helpers");
+  test("moodFromCode buckets every WMO code we can receive", () => {
+    eq(A.moodFromCode(0), "sunny"); eq(A.moodFromCode(1), "sunny");
+    eq(A.moodFromCode(2), "cloudy"); eq(A.moodFromCode(3), "cloudy");
+    eq(A.moodFromCode(45), "cloudy"); eq(A.moodFromCode(48), "cloudy");
+    eq(A.moodFromCode(51), "rain"); eq(A.moodFromCode(65), "rain"); eq(A.moodFromCode(82), "rain");
+    eq(A.moodFromCode(71), "snow"); eq(A.moodFromCode(75), "snow"); eq(A.moodFromCode(86), "snow");
+    eq(A.moodFromCode(99), "rain");
+  });
+  test("the moon runs 8 phases and cycles ~29.5 days", () => {
+    const names = new Set(); for (let i = 0; i < 30; i++) names.add(A.getMoon(dayAt(i)).name);
+    ok(names.size === 8, "saw " + names.size + " phase names");
+    const a = A.getMoon(DAY(2026, 0, 1)), b = A.getMoon(DAY(2026, 0, 30));
+    near(Math.abs(b.frac - a.frac), 0, 0.06, "a synodic month should return to the same phase");
+  });
+  test("all eight seasons appear across a year", () => {
+    const s = new Set(); for (let i = 0; i < 365; i++) s.add(A.seasonFor(dayAt(i)).name);
+    eq(s.size, 8, "seasons seen: " + [...s].join(", "));
+  });
+  test("daySeed is non-decreasing (a later day never hashes earlier)", () => {
+    // Note: daySeed counts elapsed ms, so the spring DST switch can repeat one value.
+    // Adjacent-day repeats are caught by the no-repeat test above; this guards ordering.
+    for (let i = 1; i < SPAN; i++) ok(A.daySeed(dayAt(i)) >= A.daySeed(dayAt(i - 1)));
+  });
+
+  // ---------------------------------------------------------------- integrity
+  group("content · the structures agree");
+  test("every theme-week color label resolves to a real palette color", () => {
+    for (const t of A.THEME_WEEKS) for (const l of t.colors)
+      ok(A.byLabel(l), t.name + " references unknown color \"" + l + "\"");
+  });
+  test("every holiday has a color and it exists", () => {
+    for (const h of A.HOLIDAYS) { ok(h.color, h.name + " has no color"); ok(A.byLabel(h.color.label), h.name); }
+  });
+  test("every palette color has a valid hex and a team", () => {
+    for (const c of A.PALETTE) { ok(/^#[0-9a-f]{6}$/i.test(c.hex), c.label + " hex " + c.hex); ok(c.team, c.label + " has no team"); }
+  });
+  test("every trouser has a valid hex", () => {
+    for (const b of A.BOTTOMS) ok(/^#[0-9a-f]{6}$/i.test(b.hex), b.label + " hex " + b.hex);
+  });
+  test("every palette color has verses for each season it can actually appear in", () => {
+    const coarseOf = m => (m <= 1 || m === 11) ? "winter" : m <= 4 ? "spring" : m <= 7 ? "summer" : "autumn";
+    for (const c of A.PALETTE) {
+      const bank = A.VERSES[c.label];
+      ok(bank, c.label + " has no verse bank at all");
+      const seasons = new Set([...(monthsOf[c.label] || [])].map(coarseOf));
+      ok(seasons.size > 0, c.label + " never appeared, so its verses are untested");
+      for (const s of seasons) ok(bank[s] && bank[s].length, c.label + " appears in " + s + " but has no " + s + " verse");
+    }
+  });
+  test("every verse is short and non-empty", () => {
+    for (const [label, bank] of Object.entries(A.VERSES))
+      for (const [season, lines] of Object.entries(bank))
+        for (const l of lines) {
+          ok(l && l.trim().length > 12, label + "/" + season + " has a blank verse");
+          ok(l.length <= 120 && l.split("\n").length <= 3, label + "/" + season + " verse too long: " + JSON.stringify(l.slice(0, 60)));
+        }
+  });
+  test("a rendered day always produces a verse and a team", () => {
+    for (let i = 0; i < SPAN; i++) {
+      const r = A.colorForDate(dayAt(i));
+      ok(A.verseFor(dayAt(i), r).body.trim(), "empty verse on " + dayAt(i).toDateString());
+      ok(r.team, "no team on " + dayAt(i).toDateString());
+    }
+  });
+  test("no leftover team/location/person references", () => {
+    const html = doc.documentElement.innerHTML;
+    for (const w of ["Cedars", "Lakeside", "Jasmin", "Julian", "Bigos"]) ok(!html.includes(w), "found \"" + w + "\" in the page");
+  });
+
+  // ---------------------------------------------------------------- readability
+  group("readability · the daily paper stays legible");
+  const lum = hex => { const [r, g, b] = A.hexRGB(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const rootVars = () => { const cs = app.getComputedStyle(doc.documentElement); return k => cs.getPropertyValue(k).trim(); };
+  const ink = rootVars()("--ink");
+  let worstBody = 99, worstSmall = 99, worstPaper = 1, worstName = "";
+  const painted = {};
+  for (const c of A.PALETTE) {
+    A.paintPage(c.hex);
+    const v = rootVars();
+    const paper = v("--paper"), card = v("--card"), muted = v("--muted");
+    painted[c.label] = paper;
+    const body = Math.min(ratio(ink, paper), ratio(ink, card));
+    const small = Math.min(ratio(muted, paper), ratio(muted, card));
+    if (body < worstBody) { worstBody = body; worstName = c.label; }
+    worstSmall = Math.min(worstSmall, small);
+    worstPaper = Math.min(worstPaper, lum(paper));
+  }
+  test("body text clears 7:1 (AAA) on every day's paper and card", () => ok(worstBody >= 7, "worst " + worstBody.toFixed(2) + ":1 on " + worstName));
+  test("small text clears 4.5:1 (AA) on every day's paper and card", () => ok(worstSmall >= 4.5, "worst " + worstSmall.toFixed(2) + ":1"));
+  test("the paper never gets heavy (luminance stays ≥ 0.45)", () => ok(worstPaper >= 0.45, "darkest paper luminance " + worstPaper.toFixed(2)));
+  test("the paper actually changes with the color", () => {
+    const distinct = new Set(Object.values(painted));
+    ok(distinct.size >= 13, "only " + distinct.size + " distinct papers across " + A.PALETTE.length + " colors");
+  });
+  test("the page background is painted from the day's paper", () => {
+    // the body eases its background over 0.6s, so measuring mid-flight reads a blend
+    doc.body.style.transition = "none";
+    A.renderAll();
+    const p = rootVars()("--paper").slice(1);
+    const expected = "rgb(" + [0, 2, 4].map(i => parseInt(p.substr(i, 2), 16)).join(", ") + ")";
+    eq(app.getComputedStyle(doc.body).backgroundColor, expected);
+    doc.body.style.transition = "";
+  });
+  test("the hero swatch picks readable text for its own background", () => {
+    for (const c of A.PALETTE) ok(ratio(A.contrastText(c.hex), c.hex) >= 3, c.label + " hero text fails large-text contrast");
+  });
+
+  // ---------------------------------------------------------------- outfit
+  group("outfit · the pairing rules");
+  const trousers = new Set(A.BOTTOMS.map(b => b.label));
+  test("an outfit always fills both pieces", () => {
+    for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
+      const f = A.outfitFor(dayAt(i), A.colorForDate(dayAt(i)), mode);
+      ok(f.top && f.top.label && /^#[0-9a-f]{6}$/i.test(f.top.hex), "bad top on " + dayAt(i).toDateString());
+      ok(f.bottom && f.bottom.label && /^#[0-9a-f]{6}$/i.test(f.bottom.hex), "bad bottom on " + dayAt(i).toDateString());
+    }
+  });
+  test("the day's color lands on the piece the mode names", () => {
+    for (let i = 0; i < SPAN; i += 5) {
+      const d = dayAt(i), c = A.colorForDate(d).shade.name;
+      if (A.colorForDate(d).theme && A.colorForDate(d).theme.name === "Monochrome Week") continue;
+      eq(A.outfitFor(d, A.colorForDate(d), "top").top.label, c, "top mode on " + d.toDateString());
+      eq(A.outfitFor(d, A.colorForDate(d), "bottom").bottom.label, c, "bottom mode on " + d.toDateString());
+    }
+  });
+  test("in top mode the trousers are always something people own", () => {
+    for (let i = 0; i < SPAN; i++) {
+      const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), "top");
+      ok(trousers.has(f.bottom.label) || A.PANTS_OK.includes(f.bottom.label), f.bottom.label + " trousers on " + d.toDateString());
+    }
+  });
+  test("never two loud pieces", () => {
+    for (let i = 0; i < SPAN; i++) for (const mode of ["top", "bottom"]) {
+      const d = dayAt(i), r = A.colorForDate(d), f = A.outfitFor(d, r, mode);
+      const partner = f.top.label === r.shade.name ? f.bottom : f.top;
+      if (A.isQuiet(r.shade.name)) continue;
+      ok(A.isQuiet(partner.label) || trousers.has(partner.label), r.shade.name + " got loud partner " + partner.label + " on " + d.toDateString());
+    }
+  });
+  test("Monochrome Week is the same color top and toe", () => {
+    let seen = 0;
+    for (let i = 0; i < SPAN; i++) {
+      const d = dayAt(i), r = A.colorForDate(d);
+      if (!r.theme || r.theme.name !== "Monochrome Week") continue;
+      seen++; eq(A.outfitFor(d, r, "top").bottom.label, A.outfitFor(d, r, "top").top.label, d.toDateString());
+    }
+    ok(seen > 0, "never found a Monochrome Week to test");
+  });
+  test("an implausible trouser color always offers a way out", () => {
+    for (let i = 0; i < SPAN; i++) {
+      const d = dayAt(i), c = A.colorForDate(d).shade.name;
+      const plausible = trousers.has(c) || A.PANTS_OK.includes(c);
+      const note = A.outfitFor(d, A.colorForDate(d), "bottom").note;
+      if (plausible) ok(!/big ask/.test(note), c + " is wearable but got the caveat on " + d.toDateString());
+      else ok(/big ask/.test(note), c + " trousers got no caveat on " + d.toDateString());
+    }
+  });
+  test("the outfit doesn't change during the day", () => {
+    for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
+      const d = dayAt(i), late = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 22, 10);
+      const a = A.outfitFor(d, A.colorForDate(d), mode), b = A.outfitFor(late, A.colorForDate(late), mode);
+      eq(a.top.label + "/" + a.bottom.label, b.top.label + "/" + b.bottom.label, "outfit drifted on " + d.toDateString());
+    }
+  });
+  test("every note names a piece that is actually shown", () => {
+    for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
+      const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
+      const plain = f.note.replace(/<\/?b>/g, "");
+      ok(plain.includes(f.top.label) || plain.includes(f.bottom.label), "note names neither piece: " + plain);
+    }
+  });
+
+  // ---------------------------------------------------------------- region
+  group("regions · the shared-area promise");
+  test("the region table loads and every entry is well-formed", () => {
+    ok(A.REGIONS && Object.keys(A.REGIONS).length > 800, "regions table missing or thin");
+    for (const [p, v] of Object.entries(A.REGIONS)) {
+      ok(/^\d{3}$/.test(p), "bad prefix " + p);
+      ok(Array.isArray(v) && typeof v[0] === "number" && typeof v[1] === "number" && typeof v[2] === "string", "bad entry " + p);
+      ok(Math.abs(v[0]) <= 90 && Math.abs(v[1]) <= 180, "out-of-range coords for " + p);
+    }
+  });
+  test("a zip maps to its 3-digit region, and unknown ones map to nothing", () => {
+    const known = Object.keys(A.REGIONS);
+    for (const p of known.slice(0, 60)) { eq(A.regionOf(p + "01"), p); eq(A.regionOf(p), p); }
+    const unknown = ["000", "010", "020", "099"].filter(p => !A.REGIONS[p]);
+    ok(unknown.length > 0, "need at least one unassigned prefix to test");
+    for (const p of unknown) eq(A.regionOf(p + "99"), null, p + " should not resolve");
+    eq(A.regionOf("abc"), null); eq(A.regionOf(""), null); eq(A.regionOf("5"), null);
+  });
+
+  } finally {
+    // put things back
+    for (const [k, v] of Object.entries(saved)) { if (v === null) app.localStorage.removeItem(k); else app.localStorage.setItem(k, v); }
+    A.renderAll();
+  }
+
+  // ---------------------------------------------------------------- report
+  const failed = res.filter(r => !r.ok);
+  const ms = Math.round(performance.now() - t0);
+  const banner = document.getElementById("banner");
+  banner.className = "banner " + (failed.length ? "fail" : "pass");
+  banner.textContent = failed.length
+    ? failed.length + " of " + res.length + " FAILED"
+    : "all " + res.length + " passed · " + ms + "ms";
+  document.getElementById("sub").textContent = "index.html in a same-origin iframe · " + res.length + " assertions · " + ms + "ms";
+  document.title = (failed.length ? "✗ " + failed.length + "/" + res.length : "✓ " + res.length) + " · Toga tests";
+  window.__toga = { passed: res.length - failed.length, failed: failed.length, total: res.length, ms,
+                    failures: failed.map(f => f.suite + " › " + f.name + ": " + f.err) };
+}
+</script>
+</body>
+</html>

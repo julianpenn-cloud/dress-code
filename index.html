@@ -1006,7 +1006,8 @@ function outfitFor(date, r, mode) {
 
   // Monochrome Week's whole point is one color top to toe — so honour it literally.
   if (r.theme && r.theme.name === "Monochrome Week")
-    return { top: hero, bottom: hero, mono: true, note: "Monochrome Week — one color, top to toe. Any shade of it." };
+    return { top: hero, bottom: hero, mono: true,
+             note: "Monochrome Week — <b>" + hero.label + "</b> head to toe. Any shade of it." };
 
   const quiet = isQuiet(hero.label);
   if (mode === "bottom") {
@@ -1034,9 +1035,17 @@ function outfitFor(date, r, mode) {
 //  Rendering
 // ---------------------------------------------------------------
 const hexRGB = hex => { const c = hex.replace("#",""); return [0,2,4].map(i => parseInt(c.substr(i,2),16)); };
+//  WCAG relative luminance and contrast ratio — the real thing, used for decisions.
+const relLum = hex => { const [r, g, b] = hexRGB(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126*r + 0.7152*g + 0.0722*b; };
+const contrastRatio = (a, b) => { const [x, y] = [relLum(a), relLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+//  Hero text: white or ink, whichever reads. The luma split keeps the intended look
+//  (white on deep colors, ink on pale ones) with a floor: at 44px bold the bar is 3:1,
+//  and a candidate under 3.2 flips rather than scraping by. Orange and Coral used to
+//  land at 2.8 and 3.0 with white — they take ink now.
 function contrastText(hex) {
   const [r, g, b] = hexRGB(hex);
-  return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.6 ? "#1a1a1a" : "#ffffff";
+  const pref = (0.299*r + 0.587*g + 0.114*b) / 255 > 0.6 ? "#1a1a1a" : "#ffffff";
+  return contrastRatio(pref, hex) >= 3.2 ? pref : (pref === "#ffffff" ? "#1a1a1a" : "#ffffff");
 }
 //  A deep, readable version of a color for headings: pull lightness down to ~28%,
 //  keep the hue, cap saturation so neon-ish colors don't vibrate against cream.
@@ -1294,6 +1303,20 @@ renderAll();
 maybeWelcome(joined);
 refreshWeather();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ---------------------------------------------------------------
+//  Test surface. test.html loads this page in a same-origin iframe and asserts
+//  against this exact code, so the tests can never drift from the product. `const`
+//  declarations don't attach to window, so the pieces the suite reaches for are
+//  published here explicitly — which also documents the engine's real shape.
+// ---------------------------------------------------------------
+window.TOGA = {
+  // data
+  PALETTE, VERSES, THEME_WEEKS, HOLIDAYS, BOTTOMS, REGIONS, PANTS_OK, QUITE_NEUTRAL,
+  // engine
+  colorForDate, outfitFor, verseFor, byLabel, seasonFor, getMoon, daySeed, hash32,
+  moodFromCode, regionOf, paintPage, contrastText, renderAll, hexRGB, isQuiet, easyLine,
+};
 </script>
 </body>
 </html>
