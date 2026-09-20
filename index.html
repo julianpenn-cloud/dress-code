@@ -344,6 +344,33 @@
   }
   .verse-wx a { color: var(--green); }
 
+  /* ------------------------------------------------ The long view */
+  /* Closed by default. The app's whole posture is "wear it if it's easy", so the
+     depth is here to open if you want it and to sit quietly if you don't. */
+  .longview { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(var(--day-rgb), 0.25); }
+  .longview summary {
+    cursor: pointer; list-style: none; text-align: center;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--day-ink); opacity: 0.85;
+  }
+  .longview summary::-webkit-details-marker { display: none; }
+  .longview summary span::after { content: " +"; opacity: 0.5; }
+  .longview[open] summary span::after { content: " –"; }
+  .longview summary:hover { opacity: 1; }
+  .lv-thread, .lv-sky, .lv-history { font-size: 12.5px; line-height: 1.55; margin: 10px 0 0; }
+  .lv-thread { font-family: "EB Garamond", Georgia, serif; font-size: 15.5px; font-style: italic; color: var(--ink); }
+  .lv-sky { color: var(--day-ink); }
+  .lv-history { color: var(--muted); }
+  .lv-line {
+    margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid rgba(var(--day-rgb), 0.2);
+    font-family: "EB Garamond", Georgia, serif; font-size: 15.5px; font-style: italic;
+    color: var(--ink); white-space: pre-line; text-align: center; text-wrap: balance;
+  }
+  .lv-line cite {
+    display: block; margin-top: 7px; font-family: Inter, system-ui, sans-serif;
+    font-style: normal; font-size: 10px; letter-spacing: 0.4px; color: var(--muted);
+  }
+
   /* ------------------------------------------------ Month grid */
   .month-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .month-bar h2 { margin-bottom: 0; }
@@ -459,6 +486,17 @@
         <div class="verse" id="verse"></div>
         <div class="verse-tail" id="verseTail"></div>
         <div class="verse-wx" id="verseWx"></div>
+
+        <!-- The long view: real astronomy, the colour's history, and a line of
+             public-domain poetry. Closed by default — this app is a nudge, not a
+             reading list. Open it or don't. -->
+        <details class="longview" id="longView">
+          <summary><span>Why this colour, today</span></summary>
+          <p class="lv-thread" id="lvThread"></p>
+          <p class="lv-sky" id="lvSky"></p>
+          <p class="lv-history" id="lvHistory"></p>
+          <blockquote class="lv-line" id="lvLine"></blockquote>
+        </details>
       </div>
       <div class="panel">
         <div class="month-bar">
@@ -871,6 +909,347 @@ function getMoon(date) {
   return { frac, name: NAMES[idx], emoji: EMOJIS[idx] };
 }
 
+// ---------------------------------------------------------------
+//  The sky. Real astronomy, computed here — no API, no ephemeris table, works
+//  offline. Low-precision solar position from the Astronomical Almanac, good to
+//  about a hundredth of a degree, which is far finer than a page like this needs.
+//  Every number below can be checked against any almanac; test.html checks several.
+// ---------------------------------------------------------------
+const RAD = Math.PI / 180, SUN_DEG_PER_DAY = 0.9856474;   // mean solar motion
+
+//  Days since J2000.0 (2000-01-01 12:00 UTC), taken at noon UTC so the value is
+//  stable for a whole local date rather than drifting across it.
+function daysSinceJ2000(date) {
+  return (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12) - Date.UTC(2000, 0, 1, 12)) / 86400000;
+}
+//  Ecliptic longitude of the sun — 0° at the March equinox, 90° June solstice,
+//  180° September, 270° December. The one number that really is "where the year is".
+function solarLongitude(date) {
+  const n = daysSinceJ2000(date);
+  const g = (357.528 + 0.9856003 * n) * RAD;            // mean anomaly
+  const L = 280.460 + SUN_DEG_PER_DAY * n;              // mean longitude
+  return ((L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) % 360 + 360) % 360;
+}
+//  How far north or south of the celestial equator the sun stands.
+function solarDeclination(date) {
+  const eps = (23.439 - 0.0000004 * daysSinceJ2000(date)) * RAD;   // axial tilt
+  return Math.asin(Math.sin(eps) * Math.sin(solarLongitude(date) * RAD)) / RAD;
+}
+//  Hours of daylight at a latitude. Returns 0 or 24 inside the polar circles,
+//  where the sun genuinely does not rise or set.
+function dayLengthHours(lat, date) {
+  const dec = solarDeclination(date) * RAD, phi = lat * RAD;
+  const cosH = (Math.sin(-0.833 * RAD) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+  if (cosH >= 1) return 0;
+  if (cosH <= -1) return 24;
+  return 2 * Math.acos(cosH) / RAD / 15;
+}
+//  Change in daylight over `days` days, in minutes — "how much light we're gaining".
+function dayLengthDeltaMinutes(lat, date, days) {
+  const a = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + days);
+  return (dayLengthHours(lat, b) - dayLengthHours(lat, a)) * 60;
+}
+//  The sun's height above the horizon at local solar noon.
+function solarNoonAltitude(lat, date) { return 90 - Math.abs(lat - solarDeclination(date)); }
+function dayOfYear(d) { return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 1)) / 86400000); }
+function daysInYear(y) { return dayOfYear(new Date(y, 11, 31)) + 1; }
+
+const SEASON_MARKS = [[0, "March equinox"], [90, "June solstice"], [180, "September equinox"], [270, "December solstice"]];
+//  Degrees of ecliptic longitude still to run before the sun reaches `target`:
+//  positive before the crossing, negative after.
+function degreesTo(target, date) {
+  const r = ((target - solarLongitude(date)) % 360 + 360) % 360;
+  return r > 180 ? r - 360 : r;
+}
+//  The instant the sun crosses an ecliptic longitude, interpolated between the two
+//  noons that bracket it. Sampling whole days is not enough: a crossing that falls
+//  after noon UTC brackets a day late, which is how an equinox gets reported on the
+//  wrong date. Interpolating also beats the mean solar rate, which drifts up to a
+//  couple of days across a season.
+function seasonCrossing(date, target) {
+  const noonUTC = d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+  for (let i = 1; i <= 400; i++) {
+    const a = new Date(date.getFullYear(), date.getMonth(), date.getDate() + i - 1);
+    const b = new Date(date.getFullYear(), date.getMonth(), date.getDate() + i);
+    const ra = degreesTo(target, a), rb = degreesTo(target, b);
+    if (ra > 0 && rb <= 0) {
+      const f = ra / (ra - rb);
+      return new Date(noonUTC(a) + f * (noonUTC(b) - noonUTC(a)));
+    }
+  }
+  return null;
+}
+function nextSeasonMark(date) {
+  const lam = solarLongitude(date);
+  let target = null;
+  for (const [t, name] of SEASON_MARKS) {
+    const deg = ((t - lam) % 360 + 360) % 360;
+    if (!target || deg < target.deg) target = { t, name, deg };
+  }
+  const at = seasonCrossing(date, target.t);
+  if (!at) return { name: target.name, at: null, days: null };
+  const midnight = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const crossingDay = Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
+  return { name: target.name, at: at.toISOString(), days: Math.round((crossingDay - midnight) / 86400000) };
+}
+//  Meteor showers at their real peak dates. These recur to within a day or so, so
+//  a non-leap year table is honest at this resolution.
+const SHOWERS = [
+  { name: "the Quadrantids",   month: 0,  day: 3,  span: 4 },
+  { name: "the Lyrids",        month: 3,  day: 22, span: 4 },
+  { name: "the Eta Aquariids", month: 4,  day: 6,  span: 5 },
+  { name: "the Perseids",      month: 7,  day: 12, span: 5 },
+  { name: "the Orionids",      month: 9,  day: 21, span: 5 },
+  { name: "the Leonids",       month: 10, day: 17, span: 4 },
+  { name: "the Geminids",      month: 11, day: 14, span: 5 },
+];
+function meteorShower(date) {
+  const doy = dayOfYear(date), len = daysInYear(date.getFullYear());
+  for (const s of SHOWERS) {
+    const peak = dayOfYear(new Date(date.getFullYear(), s.month, s.day));
+    let d = doy - peak;
+    if (d > len / 2) d -= len;
+    if (d < -len / 2) d += len;
+    if (Math.abs(d) <= s.span) return { name: s.name, days: d };
+  }
+  return null;
+}
+
+//  Everything the page knows about the sky today. `lat` is optional: without a
+//  region we still know the sun's place in the year, just not local daylight.
+function skyFor(date, lat) {
+  const has = typeof lat === "number" && isFinite(lat);
+  return {
+    longitude: solarLongitude(date),
+    declination: solarDeclination(date),
+    noonAltitude: has ? solarNoonAltitude(lat, date) : null,
+    dayLength: has ? dayLengthHours(lat, date) : null,
+    deltaMinutes: has ? dayLengthDeltaMinutes(lat, date, 1) : null,
+    nextMark: nextSeasonMark(date),
+    shower: meteorShower(date),
+    moon: getMoon(date),
+    hasLat: has,
+  };
+}
+
+// ---------------------------------------------------------------
+//  Meaning. Three banks, all of them checkable:
+//
+//   THREADS  — what the day's colour actually is in the world. Named sources
+//              and dates only; no folklore invented to fill a gap.
+//   ALMANAC  — real calendrical history, keyed to the astronomical moment rather
+//              than a fixed day, because the year's hinges are what people built
+//              calendars and festivals around. Eight windows cover the whole year.
+//   LINES    — public-domain poetry only, each with its work and date, so any
+//              reader can check it. Nothing here is under copyright: every author
+//              died more than a century ago and every text predates 1901.
+//              Modern translations (Barks' Rumi, most Bashō) are still in
+//              copyright and are deliberately absent.
+// ---------------------------------------------------------------
+const THREADS = {
+  Purple: "The hardest colour in the world to make, so it spent most of history belonging to whoever could afford it — a sea snail on one coast, a lichen on another. Then in 1856 a chemistry student looking for a cure for malaria made mauve by accident, and purple was cheap overnight.",
+  Red: "Ochre. Red earth, dug up, ground and painted onto cave walls tens of thousands of years ago — among the oldest pigments anyone has found, and still the colour of anything that wants to be noticed.",
+  Blue: "Blue is rare among living things, so the oldest blues came out of the ground: lapis, ground fine and carried a very long way. Indigo came from a leaf instead, and it stained your hands for a week.",
+  Green: "Green is everywhere in the world and nearly nowhere in pigment — most old greens darkened, or turned brown, or were poison. It is the one colour life makes better than we do.",
+  Brown: "Brown is what almost everything becomes. Soil, bark, bread crust, the outside of a seed. The least dramatic colour there is, and the one the world is mostly made of.",
+  Grey: "Grey is the colour of distance — air between you and a far hill. The further off a thing is, the greyer it goes, which is why grey reads as calm rather than as empty.",
+  White: "White is every colour arriving at once, which is why snow and cloud and noon all give the same answer. It is also the easiest colour to lose.",
+  Black: "Black is the absence of reflected light, and one of the hardest colours to get into cloth — most blacks of the past were very dark browns, blues or greens, and everyone agreed to call them black.",
+  Yellow: "Yellow ochre is among the oldest pigments there is, right alongside red. It is also the colour the eye finds first, which is why it came to mean caution as often as it means spring.",
+  Pink: "Pink is not in the rainbow — there is no pink in the spectrum. It is what you get when you lighten red, and the sky does it at dawn and dusk, which is probably why it reads as a time of day rather than as a colour.",
+  Orange: "Orange is the only colour in the rainbow named after a fruit. English had no word for it until the oranges arrived; before that people called the colour yellow-red.",
+  Teal: "Teal is a duck. The colour is named after the bird's wing patch, which is exactly that shade of blue-green.",
+  Coral: "Coral is an animal that builds stone, and the colour is the animal — the pink-orange of the skeleton, and of the sky at the end of a clear day.",
+  Sage: "Sage is a plant and its own colour. The grey in those leaves is a waxy coating that holds water in, which is what a plant does when it expects a dry spell.",
+  Burgundy: "Burgundy is a wine region before it is a colour, and the shade is the wine: deep, dark, and named after the place it came from.",
+  Plum: "Plum is the skin of a thing rather than a dye — the bloom on the fruit, and the last colour the sky holds before it goes fully dark.",
+};
+
+//  History at the year's eight hinges. `near` is ecliptic longitude; `span` is the
+//  half-width in degrees, so the eight windows tile the whole year with no gaps.
+const ALMANAC = [
+  { near: 0, span: 23, facts: [
+    "The equinox is the one day the sun rises due east and sets due west from everywhere on Earth. If you want to find true east, that is the morning to do it.",
+    "\"Equinox\" means equal night, but they are not quite equal: the sun is a disc rather than a point, so it is already up when its centre crosses the horizon, and the air bends the light a little more. Daylight runs several minutes long.",
+    "In 1582 the calendar had drifted ten days out of step with the equinox. The fix was to delete them: people went to bed on 4 October and woke on the 15th.",
+    "The drift came from the year not being a whole number of days — 365.2422 of them. Ignore the leftover and the calendar slides a full day every four years.",
+  ]},
+  { near: 45, span: 23, facts: [
+    "Halfway between the equinox and the solstice is a cross-quarter day, the old calendar's second hinge. In Gaelic Ireland and Scotland this one was Beltane, when the cattle went up to the summer pasture.",
+    "May Day and the maypole sat here long before anyone wrote the date down. The hawthorn flowers now, which is a calendar of its own.",
+    "Quarter days and cross-quarter days divide the year into eighths, which is about as fine as a farming calendar ever needed to be.",
+  ]},
+  { near: 90, span: 23, facts: [
+    "\"Solstice\" means sun-standing-still: the day the sun stops climbing and turns back. Around it the noon shadow barely moves for weeks, so you could find it with nothing but a stick in the ground.",
+    "Chinese astronomers measured solstice shadows with a gnomon for thousands of years, and the surviving records run back over three thousand.",
+    "Stonehenge's axis lines up on the midsummer sunrise and the midwinter sunset — one alignment, both ends of the year.",
+    "The longest day is not the hottest. Land and water take weeks to catch up with the sun, which is why the heat arrives about a month late.",
+  ]},
+  { near: 135, span: 23, facts: [
+    "The first harvest. In England this was Lammas, the loaf-mass, when the first grain was baked into bread — the point in the year where the gamble of spring either paid or did not.",
+    "In Gaelic tradition it was Lughnasadh, with games and gatherings on hilltops. Harvest festivals gather at this cross-quarter in a good many northern calendars, because this is when the grain is in.",
+    "The Perseids peak around here, the year's most reliable meteor shower. People have watched it for close to two thousand years, and Chinese observers wrote it down.",
+  ]},
+  { near: 180, span: 23, facts: [
+    "The harvest moon is the full moon nearest this equinox. For a few nights it rises only about twenty minutes later each night instead of fifty, so it lit the fields several evenings running — a real effect of the moon's shallow angle to the horizon.",
+    "Before time zones every town kept its own noon, and every railway timetable was nonsense. Standard time arrived with the railways, because you cannot run a train on local sun.",
+    "In 1752 Britain finally gave up the old calendar and lost eleven days doing it: September ran the 2nd, and then the 14th.",
+  ]},
+  { near: 225, span: 23, facts: [
+    "The far end of the harvest — what is left once the last of it is in. In Gaelic tradition this was Samhain, the beginning of the dark half of the year.",
+    "The Taurid and Leonid showers fall around here. The Leonids have produced storms of thousands of meteors an hour when the Earth crosses a comet's debris trail edge-on, which it does in a big way roughly every thirty-three years.",
+    "England began its legal year on 25 March until 1752, so January and February belonged to the year before. Dates in that stretch were often written with two years on them.",
+  ]},
+  { near: 270, span: 23, facts: [
+    "The shortest day, and the turn. From here the light comes back — slowly at first, about a minute a day, and fastest around the equinoxes.",
+    "Newgrange in Ireland is older than the pyramids at Giza, and its inner chamber is lit at sunrise near this solstice through a roof box built for exactly that. It has been doing it for more than five thousand years.",
+    "Inside the Arctic Circle the sun does not rise at all — for a few days near the circle, and for months further up. Above the circle the year has a different shape entirely.",
+    "Almost every culture in the high latitudes arrived at a festival of light at the solstice, and it is not hard to see why: this is the moment the year stops taking and starts giving back.",
+  ]},
+  { near: 315, span: 23, facts: [
+    "The first cross-quarter of the year, and the first sign it has turned. In Gaelic tradition this was Imbolc, when the ewes came into milk and the ground began to soften.",
+    "Groundhog Day sits about here — a weather proverb dressed up as an animal. The midpoint between the solstice and the equinox is a reasonable place to guess about spring, which is probably why so many calendars put something there.",
+    "The far north and the tropics disagree about this month entirely. Inside the Arctic it is still deep winter; near the equator it is simply the dry season.",
+  ]},
+];
+//  A handful of dates worth naming exactly.
+const ALMANAC_DATES = {
+  "10-04": "On this date in 1582 the Gregorian calendar skipped ten days to catch up with the equinox. On the same date in 1957, Sputnik went up — the first thing anyone had put in orbit.",
+  "09-14": "The day Britain caught up: after 2 September 1752 came the 14th, eleven days gone at a stroke.",
+  "02-29": "The leap day. It exists because the year runs about six hours longer than 365 days; without it the calendar slips a whole day every four years.",
+  "04-12": "In 1961 Yuri Gagarin went up and came back, and the day acquired a new kind of history.",
+  "07-20": "In 1969 two people walked on the Moon. The computer that got them there had less memory than a single photograph takes up now.",
+  "03-25": "This used to be New Year's Day in England, and the legal year ran from here — which is why old dates in January and February often carry two years on them.",
+};
+
+//  Public-domain poetry and scripture. Every entry names its work and date. All are
+//  pre-1901, and every author died more than a century ago, so there is nothing here
+//  under copyright. `color`/`season` tag it against the day; untagged lines are
+//  general and can land anywhere.
+const LINES = [
+  { t: "To every thing there is a season, and a time to every purpose under the heaven.", src: "Ecclesiastes 3:1, King James Bible (1611)" },
+  { t: "A thing of beauty is a joy for ever.", src: "Keats, Endymion (1818)" },
+  { t: "The poetry of earth is never dead.", src: "Keats, 'On the Grasshopper and Cricket' (1817)" },
+  { t: "To see a World in a Grain of Sand\nAnd a Heaven in a Wild Flower", src: "Blake, 'Auguries of Innocence' (c. 1803)" },
+  { t: "He who binds to himself a joy\nDoes the winged life destroy", src: "Blake, 'Eternity' (c. 1803)" },
+  { t: "If eyes were made for seeing,\nThen Beauty is its own excuse for being", src: "Emerson, 'The Rhodora' (1834)" },
+  { t: "Daughters of Time, the hypocritic Days,\nMuffled and dumb like barefoot dervishes", src: "Emerson, 'Days' (1857)" },
+  { t: "In Wildness is the preservation of the World.", src: "Thoreau, 'Walking' (1862)" },
+  { t: "I went to the woods because I wished to live deliberately.", src: "Thoreau, Walden (1854)" },
+  { t: "When I heard the learn'd astronomer,\n… Look'd up in perfect silence at the stars.", src: "Walt Whitman, 'When I Heard the Learn'd Astronomer' (1865)" },
+  { t: "I loaf and invite my soul.", src: "Walt Whitman, Song of Myself (1855)" },
+  { t: "A noiseless patient spider,\nI mark'd where on a little promontory it stood isolated", src: "Walt Whitman, 'A Noiseless Patient Spider' (1891)" },
+  { t: "The Brain—is wider than the Sky—", src: "Emily Dickinson, Poems (1890)" },
+  { t: "Hope is the thing with feathers\nThat perches in the soul", src: "Emily Dickinson, Poems (1890)" },
+  { t: "No man is an island, entire of itself.", src: "John Donne, Devotions upon Emergent Occasions (1624)" },
+  { t: "Gather ye rosebuds while ye may,\nOld Time is still a-flying", src: "Robert Herrick, 'To the Virgins, to Make Much of Time' (1648)" },
+  { t: "Annihilating all that's made\nTo a green thought in a green shade.", src: "Andrew Marvell, 'The Garden' (1681)", color: "Green" },
+  { t: "Canst thou bind the sweet influences of Pleiades, or loose the bands of Orion?", src: "Job 38:31, King James Bible (1611)" },
+  { t: "I do set my bow in the cloud, and it shall be for a token.", src: "Genesis 9:13, King James Bible (1611)" },
+  { t: "The Tao that can be trodden is not the enduring and unchanging Tao.", src: "Laozi, Tao Te Ching, tr. James Legge (1891)" },
+  { t: "Look how the floor of heaven\nIs thick inlaid with patines of bright gold.", src: "Shakespeare, The Merchant of Venice (c. 1597)" },
+  { t: "There's not the smallest orb which thou behold'st\nBut in his motion like an angel sings.", src: "Shakespeare, The Merchant of Venice (c. 1597)" },
+  { t: "A host, of golden daffodils;\nBeside the lake, beneath the trees,\nFluttering and dancing in the breeze.", src: "Wordsworth, 'I Wandered Lonely as a Cloud' (1807)", season: "spring" },
+  { t: "And then my heart with pleasure fills,\nAnd dances with the daffodils.", src: "Wordsworth, 'I Wandered Lonely as a Cloud' (1807)", season: "spring" },
+  { t: "Nothing is so beautiful as Spring—", src: "Gerard Manley Hopkins, 'Spring' (1877)", season: "spring" },
+  { t: "The world is charged with the grandeur of God.", src: "Gerard Manley Hopkins, 'God's Grandeur' (1877)" },
+  { t: "If Winter comes, can Spring be far behind?", src: "Shelley, 'Ode to the West Wind' (1820)" },
+  { t: "Fair daffodils, we weep to see\nYou haste away so soon.", src: "Robert Herrick, 'To Daffodils' (1648)", season: "spring" },
+  { t: "I know a bank where the wild thyme blows,\nWhere oxlips and the nodding violet grows.", src: "Shakespeare, A Midsummer Night's Dream (c. 1595)", season: "summer", color: "Purple" },
+  { t: "Summer's lease hath all too short a date.", src: "Shakespeare, Sonnet 18 (1609)", season: "summer" },
+  { t: "Full many a glorious morning have I seen\nFlatter the mountain-tops with sovereign eye.", src: "Shakespeare, Sonnet 33 (1609)" },
+  { t: "Season of mists and mellow fruitfulness,\nClose bosom-friend of the maturing sun.", src: "Keats, 'To Autumn' (1819)", season: "autumn" },
+  { t: "Where are the songs of spring? Ay, where are they?\nThink not of them, thou hast thy music too.", src: "Keats, 'To Autumn' (1819)", season: "autumn" },
+  { t: "And gathering swallows twitter in the skies.", src: "Keats, 'To Autumn' (1819)", season: "autumn" },
+  { t: "I leant upon a coppice gate\nWhen Frost was spectre-gray.", src: "Thomas Hardy, 'The Darkling Thrush' (1900)", season: "winter", color: "Grey" },
+  { t: "Ring out, wild bells, to the wild sky…\nThe year is dying in the night.", src: "Tennyson, In Memoriam (1850)", season: "winter" },
+  { t: "There's a certain Slant of light,\nWinter Afternoons—", src: "Emily Dickinson, Poems (1890)", season: "winter" },
+  { t: "Blow, blow, thou winter wind,\nThou art not so unkind\nAs man's ingratitude.", src: "Shakespeare, As You Like It (c. 1599)", season: "winter" },
+  { t: "How like a winter hath my absence been\nFrom thee, the pleasure of the fleeting year!", src: "Shakespeare, Sonnet 97 (1609)", season: "winter" },
+  { t: "That time of year thou mayst in me behold\nWhen yellow leaves, or none, or few, do hang.", src: "Shakespeare, Sonnet 73 (1609)", season: "autumn", color: "Yellow" },
+  { t: "The Frost performs its secret ministry,\nUnhelped by any wind.", src: "Coleridge, 'Frost at Midnight' (1798)", season: "winter" },
+  { t: "In the bleak midwinter, frosty wind made moan.", src: "Christina Rossetti (1872)", season: "winter" },
+  { t: "My heart is like a singing bird.", src: "Christina Rossetti, 'A Birthday' (1862)" },
+  { t: "The moon lies fair\nUpon the straits.", src: "Matthew Arnold, 'Dover Beach' (1867)" },
+  { t: "Tiger, Tiger, burning bright\nIn the forests of the night.", src: "Blake, 'The Tyger' (1794)", color: "Orange" },
+  { t: "Full fathom five thy father lies;\nOf his bones are coral made.", src: "Shakespeare, The Tempest (1611)", color: "Coral" },
+  { t: "As white as driven snow.", src: "Shakespeare, The Winter's Tale (c. 1611)", color: "White" },
+  { t: "Ah Sun-flower! weary of time,\nWho countest the steps of the Sun:", src: "Blake, 'Ah! Sun-flower' (c. 1794)", color: "Yellow" },
+  { t: "Roll on, thou deep and dark blue Ocean—roll!", src: "Byron, Childe Harold's Pilgrimage (1818)", color: "Blue" },
+  { t: "Water, water, every where,\nNor any drop to drink.", src: "Coleridge, The Rime of the Ancient Mariner (1798)", color: "Blue" },
+];
+
+//  History for a date: an exact date if one is named, otherwise the nearest of the
+//  year's eight hinges. Deterministic, so every phone shows the same thing.
+function almanacFor(date) {
+  const key = String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+  if (ALMANAC_DATES[key]) return ALMANAC_DATES[key];
+  const lam = solarLongitude(date);
+  let best = null, nearest = null;
+  for (const w of ALMANAC) {
+    const raw = Math.abs(((lam - w.near) % 360 + 360) % 360);
+    const dist = Math.min(raw, 360 - raw);
+    if (!nearest || dist < nearest.dist) nearest = { w, dist };
+    if (dist <= w.span && (!best || dist < best.dist)) best = { w, dist };
+  }
+  // The eight spans tile the year, but fall back to the nearest window rather than
+  // return nothing: an empty panel is a worse failure than an approximate one.
+  const pick = best || nearest;
+  if (!pick) return null;
+  return pick.w.facts[hash32(hash32(daySeed(date) ^ 0x5A17E) + 0x2B31) % pick.w.facts.length];
+}
+//  A line to carry. Picking strictly the best-matching line narrows the pool to one
+//  whenever a colour and a season both match, so the same line repeats every time
+//  that colour comes round. Instead: pick the pool first (colour, season, or general,
+//  with the tagged pools weighted), then the line. Relevance, without the loop.
+function lineFor(date, r) {
+  const season = seasonOf(date), colour = r.shade.name;
+  const h = hash32(hash32(daySeed(date) ^ 0x1A0F) + 0x77C1);
+  const byColour = LINES.filter(l => l.color === colour);
+  const bySeason = LINES.filter(l => l.season === season && l.color !== colour);
+  const general = LINES.filter(l => !l.color && !l.season);
+  const pools = [];
+  if (byColour.length) pools.push(byColour, byColour);   // twice: a colour link is worth weighting
+  if (bySeason.length) pools.push(bySeason, bySeason);
+  if (general.length) pools.push(general);
+  const pool = pools.length ? pools[h % pools.length] : LINES;
+  return pool[hash32(h + 0x9E37) % pool.length];
+}
+//  The sky in words. Precise where we have a latitude, plainer where we do not.
+function skyNote(sky) {
+  const dms = h => { const t = Math.round(h * 60); return Math.floor(t / 60) + "h " + String(t % 60).padStart(2, "0") + "m"; };
+  const mins = m => { const t = Math.round(Math.abs(m) * 60); return (t >= 60 ? Math.floor(t / 60) + "m " : "") + (t % 60) + "s"; };
+  const out = [];
+  if (sky.hasLat) out.push("Daylight here runs " + dms(sky.dayLength) + ".");
+  out.push("The sun stands " + Math.abs(sky.declination).toFixed(1) + "° " +
+           (sky.declination >= 0 ? "north" : "south") + " of the celestial equator.");
+  if (sky.hasLat) {
+    out.push("At noon it stands " + Math.round(sky.noonAltitude) + "° up.");
+    const d = sky.deltaMinutes;
+    out.push(Math.abs(d) < 0.5 ? "This is the turning point: daylight barely changes today."
+      : "We " + (d > 0 ? "gain" : "lose") + " " + mins(d) + " of light a day.");
+  }
+  const n = sky.nextMark.days;
+  out.push(n === 0 ? "The " + sky.nextMark.name + " is today."
+    : "The " + sky.nextMark.name + " is " + n + " day" + (n === 1 ? "" : "s") + " off.");
+  out.push("The moon is " + sky.moon.name.toLowerCase() + ".");
+  const sh = sky.shower;
+  if (sh) {
+    const name = sh.name.replace(/^the /, "");
+    out.push(sh.days === 0 ? "The " + name + " peak tonight."
+      : sh.days < 0 ? "The " + name + " peaked " + Math.abs(sh.days) + " night" + (sh.days === -1 ? "" : "s") + " ago."
+      : "The " + name + " peak in " + sh.days + " night" + (sh.days === 1 ? "" : "s") + ".");
+  }
+  return out.join(" ");
+}
+//  Everything the day means, in one object.
+function meaningFor(date, r, lat) {
+  const sky = skyFor(date, lat);
+  return { sky, skyNote: skyNote(sky), thread: THREADS[r.shade.name] || null,
+           history: almanacFor(date), line: lineFor(date, r) };
+}
+
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 // ---------------------------------------------------------------
@@ -1215,6 +1594,23 @@ function renderHero(date) {
     : reg ? "🌤️ Seasonal · " + reg.label + " · tomorrow's forecast arrives this evening"
     : "📍 Universal · <a href='#' id='setLocLink'>add your zip</a> to share the weather with everyone nearby";
   const link = el("setLocLink"); if (link) link.onclick = e => { e.preventDefault(); openSettings(); };
+
+  // The long view — the same date, seen sideways. Real astronomy from the region's
+  // own latitude, the colour's history, and a line of public-domain poetry. All of
+  // it deterministic, so two phones showing the same day show the same page.
+  const mean = meaningFor(new Date(date.getFullYear(), date.getMonth(), date.getDate()), r, reg ? reg.lat : null);
+  el("lvThread").textContent = mean.thread || "";
+  el("lvSky").textContent = mean.skyNote;
+  el("lvHistory").textContent = mean.history || "";
+  const q = el("lvLine");
+  q.textContent = "";
+  if (mean.line) {
+    const verse = document.createElement("span");
+    verse.textContent = mean.line.t;
+    const cite = document.createElement("cite");
+    cite.textContent = mean.line.src;
+    q.appendChild(verse); q.appendChild(cite);
+  }
 }
 
 // ---------------------------------------------------------------
@@ -1374,6 +1770,11 @@ window.TOGA = {
   // engine
   colorForDate, outfitFor, verseFor, byLabel, seasonFor, getMoon, daySeed, hash32,
   moodFromCode, regionOf, paintPage, contrastText, renderAll, hexRGB, isQuiet, easyLine,
+  // sky — real astronomy, all computed locally
+  skyFor, solarLongitude, solarDeclination, dayLengthHours, dayLengthDeltaMinutes,
+  solarNoonAltitude, nextSeasonMark, meteorShower, dayOfYear, daysInYear,
+  // meaning — the colour's thread, the almanac, and the public-domain lines
+  meaningFor, almanacFor, lineFor, skyNote, THREADS, ALMANAC, ALMANAC_DATES, LINES,
 };
 </script>
 </body>

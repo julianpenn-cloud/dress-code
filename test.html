@@ -320,6 +320,119 @@ function run() {
     ok(worst >= 3, "the mark's outline only reaches " + worst.toFixed(2) + ":1 on a " + at + " day");
   });
 
+  // ---------------------------------------------------------------- sky
+  group("sky · checked against published almanac times");
+  test("the four 2026 season crossings match the almanac", () => {
+    // published UTC instants for 2026, from the standard equinox/solstice tables
+    const published = [
+      ["March equinox",     new Date(2026, 2, 10),  "2026-03-20T14:46:00Z"],
+      ["June solstice",     new Date(2026, 5, 10),  "2026-06-21T08:25:00Z"],
+      ["September equinox", new Date(2026, 8, 10),  "2026-09-23T00:06:00Z"],
+      ["December solstice", new Date(2026, 11, 10), "2026-12-21T20:50:00Z"],
+    ];
+    for (const [name, from, want] of published) {
+      const m = A.nextSeasonMark(from);
+      eq(m.name, name, "wrong next mark from " + from.toDateString());
+      const off = (new Date(m.at) - new Date(want)) / 60000;
+      ok(Math.abs(off) < 30, name + " computed " + m.at + " vs published " + want + " (" + off.toFixed(1) + " min)");
+      eq(m.at.slice(0, 10), want.slice(0, 10), name + " landed on the wrong date");
+    }
+  });
+  test("the sun's declination matches the axial tilt", () => {
+    near(A.solarDeclination(new Date(2026, 5, 21)), 23.44, 0.1, "June solstice declination");
+    near(A.solarDeclination(new Date(2026, 11, 21)), -23.44, 0.1, "December solstice declination");
+    ok(Math.abs(A.solarDeclination(new Date(2026, 2, 20))) < 0.2, "declination should be ~0 at the March equinox");
+  });
+  test("daylight behaves the way daylight has to", () => {
+    near(A.dayLengthHours(0, new Date(2026, 2, 20)), 12.1, 0.15, "just over 12h at the equator on the equinox");
+    eq(A.dayLengthHours(80, new Date(2026, 11, 21)), 0, "polar night above the circle");
+    eq(A.dayLengthHours(80, new Date(2026, 5, 21)), 24, "midnight sun above the circle");
+    ok(A.dayLengthHours(45, new Date(2026, 5, 21)) > A.dayLengthHours(45, new Date(2026, 11, 21)), "summer longer than winter");
+    ok(Math.abs(A.dayLengthDeltaMinutes(45, new Date(2026, 5, 21), 1)) < 1, "the solstice barely changes daylight");
+  });
+  test("daylight change is reported in real units", () => {
+    // the formatter once took minutes and printed seconds, so a 2m48s change read as "3s"
+    const note = A.skyNote(A.skyFor(new Date(2026, 8, 22), 44.98));
+    ok(!/lose \d+s of light/.test(note), "sub-minute unit for a multi-minute change: " + note);
+    ok(/lose \dm /.test(note), "the change at the equinox should read in minutes: " + note);
+  });
+  test("the sky note is real prose about the real sky", () => {
+    const note = A.skyNote(A.skyFor(new Date(2026, 8, 23), 44.98));
+    ok(note.length > 80, "sky note too thin: " + note);
+    ok(/equinox|solstice/.test(note), "a season mark should be named: " + note);
+    // on the equinox itself the equinox is already past, so the NEXT mark is correct
+    ok(/The (March|June|September|December) (equinox|solstice) is (today|\d+ days? off)\./.test(note),
+       "the season mark sentence is malformed: " + note);
+    ok(A.skyNote(A.skyFor(new Date(2026, 7, 12), 44.98)).includes("Perseids"), "the Perseids should be named at their peak");
+    ok(A.skyNote(A.skyFor(new Date(2026, 2, 20), null)).length > 40, "it has to work without a latitude too");
+  });
+
+  // ---------------------------------------------------------------- meaning
+  group("meaning · provenance, coverage, and no imposed depth");
+  test("every line names its work and its date", () => {
+    const bad = A.LINES.filter(l => !l.src || !/\d{4}/.test(l.src)).map(l => l.t.slice(0, 30));
+    eq(bad.length, 0, "a line is missing its source or date: " + bad.join(" | "));
+  });
+  test("no line comes from a still-copyrighted translation", () => {
+    // the well-known modern translators of Bashō and Rumi are in copyright. The bank is
+    // meant to stay firmly pre-1901, so none of their names may ever appear.
+    const banned = /barks|hamill|blyth|stryk|mitchell|coleman/i;
+    const bad = A.LINES.filter(l => banned.test(l.src)).map(l => l.src);
+    eq(bad.length, 0, "a copyrighted translation slipped in: " + bad.join(", "));
+  });
+  test("every palette colour has a thread", () => {
+    const missing = A.PALETTE.filter(c => !A.THREADS[c.label]).map(c => c.label);
+    eq(missing.length, 0, "no thread for: " + missing.join(", "));
+  });
+  test("every day of a year gets a thread, a sky, a history and a line", () => {
+    const gaps = [];
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(2026, 0, 1); d.setDate(d.getDate() + i);
+      const m = A.meaningFor(d, A.colorForDate(d), 44.98);
+      if (!m.thread || !m.history || !m.skyNote || !m.line || !m.line.t) gaps.push(d.toISOString().slice(0, 10));
+    }
+    eq(gaps.length, 0, "empty meaning on: " + gaps.slice(0, 5).join(", "));
+  });
+  test("the same date always reads the same", () => {
+    // two phones showing the same day must show the same page
+    const d = new Date(2026, 6, 4), r = A.colorForDate(d);
+    const a = A.meaningFor(d, r, 44.98);
+    const d2 = new Date(2026, 6, 4), r2 = A.colorForDate(d2);
+    const b = A.meaningFor(d2, r2, 44.98);
+    eq(a.line.src, b.line.src, "the line differs between calls");
+    eq(a.history, b.history, "the history differs between calls");
+    eq(a.skyNote, b.skyNote, "the sky note differs between calls");
+  });
+  test("the long view's text is readable on every day's paper", () => {
+    // the app's readability floor is small text >= 4.5:1, and this panel is all small text
+    const lum = h => { const [r, g, b] = A.hexRGB(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const lv = doc.getElementById("longView");
+    lv.open = true;
+    let worst = 99, at = "";
+    for (const c of A.PALETTE) {
+      A.paintPage(c.hex);
+      const paper = app.getComputedStyle(doc.documentElement).getPropertyValue("--paper").trim();
+      for (const sel of [".lv-history", ".lv-thread", ".lv-line cite"]) {
+        const el = lv.querySelector(sel);
+        const col = app.getComputedStyle(el).color;
+        const hex = "#" + col.match(/\d+/g).slice(0, 3).map(n => (+n).toString(16).padStart(2, "0")).join("");
+        const r = ratio(hex, paper);
+        if (r < worst) { worst = r; at = c.label + " " + sel; }
+      }
+    }
+    lv.open = false;
+    A.renderAll();
+    ok(worst >= 4.5, "long view text only reaches " + worst.toFixed(2) + ":1 (" + at + ")");
+  });
+  test("the long view starts closed", () => {
+    // depth is available; it is never imposed
+    const lv = doc.getElementById("longView");
+    ok(lv, "the long view panel is missing");
+    eq(lv.tagName, "DETAILS", "it should be a details element so it needs no script");
+    ok(!lv.hasAttribute("open"), "the long view should start closed");
+  });
+
   // ---------------------------------------------------------------- readability
   group("readability · the daily paper stays legible");
   const lum = hex => { const [r, g, b] = A.hexRGB(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
