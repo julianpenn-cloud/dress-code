@@ -248,12 +248,28 @@
   }
   .fit-btn:hover { border-color: var(--gold); color: var(--gold); }
   .fit-btn.on { background: var(--green); border-color: var(--green); color: var(--card); }
-  .fit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fit-row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 8px; align-items: start; }
   .fit-piece { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
-  .fit-piece .garment { width: 48px; height: 48px; margin-bottom: 6px; filter: drop-shadow(0 2px 5px rgba(34,48,31,0.18)); }
-  .fit-label { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--day-ink); opacity: 0.85; }
-  .fit-name { font-family: "Playfair Display", Georgia, serif; font-size: 18px; font-weight: 600; line-height: 1.1; margin-top: 1px; }
-  .fit-alias { font-size: 10.5px; color: var(--muted); line-height: 1.3; margin-top: 3px; font-style: italic; }
+  .fit-piece .garment { width: 40px; height: 40px; margin-bottom: 5px; filter: drop-shadow(0 2px 5px rgba(34,48,31,0.18)); }
+  /* The day's color is fixed, the pair are options — so the day gets the weight, and a
+     hairline separates "today" from "pick one of these". */
+  .fit-piece.hero-piece { border-right: 1px solid rgba(var(--day-rgb), 0.20); padding-right: 8px; }
+  .fit-piece.hero-piece .garment { width: 52px; height: 52px; }
+  .fit-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--day-ink); opacity: 0.8; }
+  .fit-name { font-family: "Playfair Display", Georgia, serif; font-size: 15px; font-weight: 600; line-height: 1.1; margin-top: 2px; }
+  .fit-piece.hero-piece .fit-name { font-size: 20px; }
+  .fit-alias {
+    font-size: 10px; color: var(--muted); line-height: 1.25; margin-top: 3px; font-style: italic;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  @media (max-width: 520px) {
+    .fit-row { gap: 6px; }
+    .fit-piece .garment { width: 32px; height: 32px; }
+    .fit-piece.hero-piece .garment { width: 42px; height: 42px; }
+    .fit-name { font-size: 13.5px; }
+    .fit-piece.hero-piece .fit-name { font-size: 17px; }
+    .fit-alias { font-size: 9px; -webkit-line-clamp: 2; }
+  }
   .fit-note { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(var(--day-rgb), 0.22); font-size: 12.5px; }
   .fit-note b { font-weight: 700; }
   .fit-easy { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
@@ -974,61 +990,78 @@ const isQuiet = label => QUITE_NEUTRAL.includes(label);
 const bWeight = (b, d) => Math.round(weightOn(b, d) * 10);
 const cWeight = (c, d) => Math.round(weightOn(c, d) * 10);
 
-//  A trouser. Every BOTTOMS entry is a behaved trouser color by construction — that's
-//  the point of the small set — so no further filtering is needed.
-function pickBottom(d, excludeLabel) {
-  const pool = BOTTOMS.filter(b => bWeight(b, d) > 0 && b.label !== excludeLabel);
-  const use = pool.length ? pool : BOTTOMS;
-  return pickFrom(use, b => bWeight(b, d), hash32(daySeed(d) ^ 0xB0770));
-}
-//  The top worn with the day's color. If the color itself is loud, the top must be quiet.
-//  If the color is already quiet, the top may carry some — and we lean it to the opposite
-//  temperature so the two don't sit in the same register.
-function pickPartnerTop(d, heroLabel) {
-  const hero = byLabel(heroLabel), loud = !isQuiet(heroLabel);
-  const pool = PALETTE.filter(c => cWeight(c, d) > 0 && c.label !== heroLabel && (!loud || isQuiet(c.label)));
-  const use = pool.length ? pool : PALETTE.filter(c => c.label === "White");
-  const want = hero && hero.temp !== "neutral" ? (hero.temp === "warm" ? "cool" : "warm") : null;
-  const weight = c => Math.round(cWeight(c, d)
-    * (loud ? 1 : (isQuiet(c.label) ? 0.35 : 1))     // a quiet hero wants a partner that carries some color
-    * (want && c.temp === want ? 1.8 : 1));          // and one from the other temperature
-  return pickFrom(use, weight, hash32(daySeed(d) ^ 0x70B1));
+//  Two distinct picks from a pool, deterministically. The second excludes the first and
+//  takes an optional bias, so a pair reads as two real choices rather than two shades of
+//  one idea.
+function twoPicks(seed, pool, weight, bias) {
+  const first = pickFrom(pool, weight, hash32(seed ^ 0xAA01));
+  const rest = pool.filter(c => c !== first);
+  if (!rest.length) return [first, first];
+  return [first, pickFrom(rest, c => (bias ? bias(c, first) : weight(c)), hash32(seed ^ 0xAA02))];
 }
 const pieceOfColor  = c => ({ label:c.label, hex:c.hex, alias:c.qualifies });
 const pieceOfBottom = b => ({ label:b.label, hex:b.hex, alias:b.alias });
 
+function bottomPool(d, excludeLabel, min) {
+  const pool = BOTTOMS.filter(b => bWeight(b, d) > 0 && b.label !== excludeLabel);
+  return pool.length >= (min || 1) ? pool : BOTTOMS.filter(b => b.label !== excludeLabel);
+}
+//  Two trousers to choose between — you may own the denim but not the khaki. All of
+//  BOTTOMS is trouser-plausible by construction; the second option leans away from the
+//  first's register so the pair isn't two neutrals saying the same thing.
+function bottomPair(d, excludeLabel) {
+  return twoPicks(daySeed(d), bottomPool(d, excludeLabel, 2), b => bWeight(b, d),
+                  (b, first) => Math.round(bWeight(b, d) * (b.neutral === first.neutral ? 1 : 1.6)))
+    .map(pieceOfBottom);
+}
+//  Two tops to wear with the day's color. A loud color demands quiet tops — BOTH of them.
+//  A quiet color lets the tops carry some, and the second leans to the other temperature
+//  so the two options aren't the same note twice.
+function topPair(d, heroLabel) {
+  const hero = byLabel(heroLabel), loud = !isQuiet(heroLabel);
+  const pool = PALETTE.filter(c => cWeight(c, d) > 0 && c.label !== heroLabel && (!loud || isQuiet(c.label)));
+  const use = pool.length >= 2 ? pool : PALETTE.filter(c => c.label === "White");
+  const want = hero && hero.temp !== "neutral" ? (hero.temp === "warm" ? "cool" : "warm") : null;
+  const weight = c => Math.round(cWeight(c, d) * (want && c.temp === want ? 1.8 : 1));
+  return twoPicks(daySeed(d), use, weight,
+                  (c, first) => Math.round(weight(c) * (c.temp === first.temp ? 0.7 : 1)))
+    .map(pieceOfColor);
+}
+
+//  Today's outfit: the day's color on one piece (fixed), and TWO options for the other so
+//  there's a fallback pair in the drawer. One rule keeps every pairing wearable — a loud
+//  color gets quiet partners, never two loud pieces. The toggle picks which end wears it.
 function outfitFor(date, r, mode) {
-  // Normalise here, not at the call site: daySeed counts elapsed milliseconds from Jan 0,
-  // so a 9pm timestamp hashes differently to a midnight one and the partner would change
-  // during the day. Every hash input must come from a midnight date.
+  //  Normalise here, not at the call site: daySeed counts elapsed milliseconds from Jan 0,
+  //  so a 9pm timestamp hashes differently to a midnight one and the options would change
+  //  during the day. Every hash input must come from a midnight date.
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const hero = { label: r.shade.name, hex: r.shade.hex, alias: r.family.qualifies };
+  const names = pair => pair.map(p => "<b>" + p.label + "</b>").join(" or ");
 
   // Monochrome Week's whole point is one color top to toe — so honour it literally.
   if (r.theme && r.theme.name === "Monochrome Week")
-    return { top: hero, bottom: hero, mono: true,
+    return { role:"top", hero, pairRole:"bottom", pair:[hero], mono:true,
              note: "Monochrome Week — <b>" + hero.label + "</b> head to toe. Any shade of it." };
 
   const quiet = isQuiet(hero.label);
   if (mode === "bottom") {
-    const top = pieceOfColor(pickPartnerTop(d, hero.label));
-    const wear = PANTS_OK.includes(hero.label);
-    if (!wear) {
-      const fallback = pickBottom(d, hero.label);
-      return { top, bottom: hero,
+    const pair = topPair(d, hero.label);
+    if (!PANTS_OK.includes(hero.label)) {
+      const fallback = pickFrom(bottomPool(d, hero.label, 1), b => bWeight(b, d), hash32(daySeed(d) ^ 0xB0770));
+      return { role:"bottom", hero, pairRole:"top", pair, mono:false,
         note: hero.label + " trousers are a big ask. Not in the drawer? Flip it: <b>" + fallback.label
             + "</b> below, " + hero.label + " up top." };
     }
-    return { top, bottom: hero, note: quiet
-      ? (isQuiet(top.label)
-          ? "<b>" + hero.label + "</b> below, <b>" + top.label + "</b> up top — quiet all the way."
-          : "<b>" + hero.label + "</b> below, so the top can carry some color: <b>" + top.label + "</b>.")
-      : "The color goes low today. Keep the top quiet: <b>" + top.label + "</b>." };
+    return { role:"bottom", hero, pairRole:"top", pair, mono:false, note: quiet
+      ? (pair.every(p => isQuiet(p.label))
+          ? "<b>" + hero.label + "</b> below, " + names(pair) + " up top — quiet all the way."
+          : "<b>" + hero.label + "</b> below, so the top can carry some color: " + names(pair) + ".")
+      : "The color goes low today. Keep the top quiet: " + names(pair) + "." };
   }
-  const bottom = pieceOfBottom(pickBottom(d, hero.label));
-  return { top: hero, bottom, note: quiet
-    ? "A quiet color today — <b>" + bottom.label + "</b> down below."
-    : "One loud piece, one quiet one — <b>" + bottom.label + "</b> down below." };
+  const pair = bottomPair(d, hero.label);
+  return { role:"top", hero, pairRole:"bottom", pair, mono:false,
+    note: (quiet ? "A quiet color today — " : "One loud piece, one quiet one — ") + names(pair) + " down below." };
 }
 
 // ---------------------------------------------------------------
@@ -1186,12 +1219,17 @@ function renderOutfit(date, r) {
     el(id).classList.toggle("on", on);
     el(id).setAttribute("aria-pressed", String(on));
   }
-  el("fitRow").innerHTML = [["top", "Top", fit.top], ["bottom", "Bottom", fit.bottom]].map(([kind, label, piece]) =>
-    `<div class="fit-piece">
-       ${garmentSVG(kind, piece.hex)}
-       <div class="fit-label">${label}</div>
-       <div class="fit-name">${piece.label}</div>
-       <div class="fit-alias">${piece.alias}</div>
+  // The day's color is fixed; the pair are the options, so it gets the larger cell.
+  const items = [{ piece: fit.hero, role: fit.role, hero: true }].concat(
+    fit.pair.map((p, i) => ({ piece: p, role: fit.pairRole, hero: false, n: i + 1 })));
+  const numbered = fit.pair.length > 1;
+  el("fitRow").style.gridTemplateColumns = items.map(i => (i.hero ? "1.25fr" : "1fr")).join(" ");
+  el("fitRow").innerHTML = items.map(i =>
+    `<div class="fit-piece${i.hero ? " hero-piece" : ""}">
+       ${garmentSVG(i.role, i.piece.hex)}
+       <div class="fit-label">${i.role}${!i.hero && numbered ? " · " + i.n : ""}</div>
+       <div class="fit-name">${i.piece.label}</div>
+       <div class="fit-alias">${i.piece.alias}</div>
      </div>`).join("");
   el("fitNote").innerHTML = fit.note;
   el("fitEasy").textContent = easyLine(date);

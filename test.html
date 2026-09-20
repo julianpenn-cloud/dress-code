@@ -267,41 +267,67 @@ function run() {
   // ---------------------------------------------------------------- outfit
   group("outfit · the pairing rules");
   const trousers = new Set(A.BOTTOMS.map(b => b.label));
-  test("an outfit always fills both pieces", () => {
+  const pieces = f => [f.hero].concat(f.pair);              // everything shown today
+  const partners = f => f.pair;                             // the options for the other role
+  test("an outfit always fills the day's piece and two options", () => {
     for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
-      const f = A.outfitFor(dayAt(i), A.colorForDate(dayAt(i)), mode);
-      ok(f.top && f.top.label && /^#[0-9a-f]{6}$/i.test(f.top.hex), "bad top on " + dayAt(i).toDateString());
-      ok(f.bottom && f.bottom.label && /^#[0-9a-f]{6}$/i.test(f.bottom.hex), "bad bottom on " + dayAt(i).toDateString());
+      const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
+      ok(f.hero && f.hero.label && /^#[0-9a-f]{6}$/i.test(f.hero.hex), "bad hero on " + d.toDateString());
+      ok(f.pair.length >= 1, "no options on " + d.toDateString());
+      for (const p of f.pair) ok(p && p.label && /^#[0-9a-f]{6}$/i.test(p.hex), "bad option on " + d.toDateString());
+      eq(f.role === "top" ? "bottom" : "top", f.pairRole, "option role contradicts the hero role");
+    }
+  });
+  test("the two options are always different from each other", () => {
+    for (let i = 0; i < SPAN; i++) for (const mode of ["top", "bottom"]) {
+      const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
+      if (f.mono) continue;
+      eq(f.pair.length, 2, "expected two options on " + d.toDateString());
+      ok(f.pair[0].label !== f.pair[1].label, "both options were " + f.pair[0].label + " on " + d.toDateString());
     }
   });
   test("the day's color lands on the piece the mode names", () => {
     for (let i = 0; i < SPAN; i += 5) {
       const d = dayAt(i), c = A.colorForDate(d).shade.name;
-      if (A.colorForDate(d).theme && A.colorForDate(d).theme.name === "Monochrome Week") continue;
-      eq(A.outfitFor(d, A.colorForDate(d), "top").top.label, c, "top mode on " + d.toDateString());
-      eq(A.outfitFor(d, A.colorForDate(d), "bottom").bottom.label, c, "bottom mode on " + d.toDateString());
+      eq(A.outfitFor(d, A.colorForDate(d), "top").hero.label, c, "top mode on " + d.toDateString());
+      eq(A.outfitFor(d, A.colorForDate(d), "bottom").hero.label, c, "bottom mode on " + d.toDateString());
     }
   });
-  test("in top mode the trousers are always something people own", () => {
+  test("trouser options are always something people own", () => {
     for (let i = 0; i < SPAN; i++) {
       const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), "top");
-      ok(trousers.has(f.bottom.label) || A.PANTS_OK.includes(f.bottom.label), f.bottom.label + " trousers on " + d.toDateString());
+      for (const p of f.pair) ok(trousers.has(p.label) || A.PANTS_OK.includes(p.label), p.label + " trousers on " + d.toDateString());
     }
   });
-  test("never two loud pieces", () => {
+  test("never two loud pieces — in either option", () => {
     for (let i = 0; i < SPAN; i++) for (const mode of ["top", "bottom"]) {
       const d = dayAt(i), r = A.colorForDate(d), f = A.outfitFor(d, r, mode);
-      const partner = f.top.label === r.shade.name ? f.bottom : f.top;
       if (A.isQuiet(r.shade.name)) continue;
-      ok(A.isQuiet(partner.label) || trousers.has(partner.label), r.shade.name + " got loud partner " + partner.label + " on " + d.toDateString());
+      for (const p of partners(f)) ok(A.isQuiet(p.label) || trousers.has(p.label),
+        r.shade.name + " got loud option " + p.label + " on " + d.toDateString());
     }
+  });
+  test("trouser options aren't two of the same register where a choice exists", () => {
+    // the second option should read as a genuinely different suggestion, not a synonym
+    let mixed = 0, same = 0;
+    for (let i = 0; i < SPAN; i++) {
+      const f = A.outfitFor(dayAt(i), A.colorForDate(dayAt(i)), "top");
+      const reg = f.pair.map(p => A.BOTTOMS.find(b => b.label === p.label)?.neutral);
+      if (reg.some(r => r === undefined)) continue;
+      reg[0] === reg[1] ? same++ : mixed++;
+    }
+    ok(mixed > 0, "never produced a mixed-register pair in two years");
+    ok(same / (same + mixed) < 0.85, "options are same-register " + Math.round(100 * same / (same + mixed)) + "% of the time");
   });
   test("Monochrome Week is the same color top and toe", () => {
     let seen = 0;
     for (let i = 0; i < SPAN; i++) {
       const d = dayAt(i), r = A.colorForDate(d);
       if (!r.theme || r.theme.name !== "Monochrome Week") continue;
-      seen++; eq(A.outfitFor(d, r, "top").bottom.label, A.outfitFor(d, r, "top").top.label, d.toDateString());
+      seen++;
+      const f = A.outfitFor(d, r, "top");
+      ok(f.mono, "not flagged monochrome on " + d.toDateString());
+      eq(f.hero.label, r.shade.name);
     }
     ok(seen > 0, "never found a Monochrome Week to test");
   });
@@ -315,17 +341,18 @@ function run() {
     }
   });
   test("the outfit doesn't change during the day", () => {
+    const sig = f => f.hero.label + "/" + f.pair.map(p => p.label).join("+");
     for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
       const d = dayAt(i), late = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 22, 10);
-      const a = A.outfitFor(d, A.colorForDate(d), mode), b = A.outfitFor(late, A.colorForDate(late), mode);
-      eq(a.top.label + "/" + a.bottom.label, b.top.label + "/" + b.bottom.label, "outfit drifted on " + d.toDateString());
+      eq(sig(A.outfitFor(d, A.colorForDate(d), mode)), sig(A.outfitFor(late, A.colorForDate(late), mode)),
+         "outfit drifted on " + d.toDateString());
     }
   });
   test("every note names a piece that is actually shown", () => {
     for (let i = 0; i < SPAN; i += 5) for (const mode of ["top", "bottom"]) {
       const d = dayAt(i), f = A.outfitFor(d, A.colorForDate(d), mode);
       const plain = f.note.replace(/<\/?b>/g, "");
-      ok(plain.includes(f.top.label) || plain.includes(f.bottom.label), "note names neither piece: " + plain);
+      ok(pieces(f).some(p => plain.includes(p.label)), "note names nothing shown: " + plain);
     }
   });
 
