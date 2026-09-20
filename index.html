@@ -53,6 +53,7 @@
     /* A deep version of the day for the mark's keyline. Unlike --day-ink this never falls back
        to the house green, so an achromatic day stays achromatic and the toga stays one colour. */
     --day-deep: #22301f;
+    --day-deep-rgb: 34, 48, 31;
     --day-rgb: 47, 74, 54;
   }
   body[data-season="winter"] { --tint-a: rgba(94, 132, 190, 0.20); --tint-b: rgba(142, 99, 196, 0.12); }
@@ -61,9 +62,41 @@
   body[data-season="autumn"] { --tint-a: rgba(196, 96, 58, 0.18); --tint-b: rgba(122, 82, 48, 0.12); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
+  /* The paper is cloth, not a flat fill: a plain weave (warp + weft), a grain of fibre,
+     and a glass sweep of light across the whole surface — all in today's colour.
+     --weave is the single knob and everything scales off it.
+     The threads are LIGHT, never dark, and that is not a style choice. Every text colour
+     here is darker than the paper, so lifting the paper can only raise contrast, while
+     darkening it cannot. Measured: the flat paper's worst case is 4.93:1 for small text
+     and 7.24:1 for body, so a dark thread breaches the 7:1 floor at alpha 0.04 — which is
+     invisible. Light threads are safe at any strength, and this texture actually improves
+     the worst case to 5.44 and 8.34. Real cloth reads because warp and weft catch light
+     differently, so the base paper plays the shadowed thread and light does the weaving.
+     Two things keep it from looking like graph paper: no 45-degree twill layer (that
+     reads as a diagonal cross-hatch), and a grain that breaks the periodicity, because
+     real cloth is never perfectly regular. Periods are 15px and 13px — unmatched, so the
+     grid cannot square up, and coarse enough not to shimmer on a phone. */
+  :root {
+    --weave: 0.16;
+    /* The fibre is WHITE-ONLY grain. A plain feTurbulence rect speckles both lighter and
+       darker, and its dark speckle alone dropped the worst-case body text to 6.82:1 —
+       under this app's 7:1 floor. So the noise is pushed into the alpha channel and the
+       colour is forced to white: the grain can add light, never take it away. */
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.12 0.12 0.12 0 0'/></filter><rect width='180' height='180' filter='url(%23g)'/></svg>");
+  }
   body {
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background:
+      /* fibre — the grain that breaks the periodicity, so the weave never reads as graph paper */
+      var(--grain),
+      /* warp — vertical threads, the stronger of the two */
+      repeating-linear-gradient(90deg, rgba(255,255,255,0) 0 3px, rgba(255,255,255, calc(var(--weave) * 1.15)) 6px, rgba(255,255,255,0) 9px 15px),
+      /* weft — horizontal threads */
+      repeating-linear-gradient(0deg, rgba(255,255,255,0) 0 3px, rgba(255,255,255, calc(var(--weave) * 0.9)) 6px, rgba(255,255,255,0) 9px 13px),
+      /* glass — a wide diagonal sheen UNDER the threads. Above them its white wash
+         compressed the weave wherever the sweep was strongest. */
+      linear-gradient(115deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.05) 32%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.10) 100%),
+      /* the colour itself: today's glow at top and foot, the season's tint across */
       radial-gradient(1100px 520px at 50% -160px, rgba(var(--day-rgb), 0.11), transparent 70%),
       radial-gradient(900px 420px at 15% -120px, var(--tint-a), transparent 65%),
       radial-gradient(800px 460px at 90% 10%, var(--tint-b), transparent 65%),
@@ -1522,8 +1555,10 @@ function paintPage(hex) {
   root.setProperty("--line", toHex(line));
   root.setProperty("--muted", toHex(muted));
   root.setProperty("--day", hex);
+  const deep = inkOf(hex, "#46494c");
   root.setProperty("--day-ink", inkOf(hex));
-  root.setProperty("--day-deep", inkOf(hex, "#46494c"));
+  root.setProperty("--day-deep", deep);
+  root.setProperty("--day-deep-rgb", hexRGB(deep).join(", "));
   root.setProperty("--day-rgb", rgb.join(", "));
   const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = toHex(paper);
 }
