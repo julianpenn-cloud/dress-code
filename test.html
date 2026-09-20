@@ -232,7 +232,7 @@ function run() {
     ok(wm, "no wordmark in the page");
     const fam = app.getComputedStyle(wm).fontFamily;
     ok(/Toga Mark/.test(fam), "wordmark is not using the inlined face: " + fam);
-    ok(app.document.fonts.check('700 46px "Toga Mark"'), "the inlined face did not load");
+    ok(app.document.fonts.check('700 56px "Toga Mark"'), "the inlined face did not load");
   });
   test("the wordmark is title case — not caps, not small caps", () => {
     // caps of any kind read as initials, and TOGA is an anagram of GOAT
@@ -246,7 +246,7 @@ function run() {
     // condensing the letterforms. If this drops back to 1, the mark has lost its shape.
     const wm = doc.querySelector(".wordmark");
     const m = new DOMMatrixReadOnly(app.getComputedStyle(wm).transform);
-    ok(m.a < 0.9 && m.a > 0.6, "wordmark condensation is " + m.a.toFixed(2) + ", expected ~0.80");
+    ok(m.a < 0.85 && m.a > 0.6, "wordmark condensation is " + m.a.toFixed(2) + ", expected ~0.72");
     ok(Math.abs(m.d - 1) < 0.01, "the wordmark is being squashed vertically too");
   });
   test("the wordmark font is embedded, not fetched", () => {
@@ -260,6 +260,14 @@ function run() {
     eq(rule.display, "block", "the rule should be a block");
     // compare layout widths: the rect is post-transform, the two scale together
     near(parseFloat(rule.width), wm.offsetWidth, 1.5, "rule width vs wordmark layout width");
+  });
+  test("the mark is a bathrobe: a rolled collar and a belt", () => {
+    // the shawl collar is what makes it a bathrobe rather than a generic tunic, so hold onto it
+    const svg = doc.getElementById("toga-mark").innerHTML;
+    ok(/stroke-linecap="round"/.test(svg), "the rolled shawl collar is gone");
+    const paths = svg.match(/<path/g) || [];
+    ok(paths.length >= 4, "expected a body, collar, belt and knot; found " + paths.length + " path(s)");
+    ok(!/<circle|<rect|<ellipse/.test(svg), "the mark has grown a disc or box again");
   });
   test("the mark appears in the header, footer and welcome card", () => {
     for (const sel of ["header .mark", "footer .mark-sm", ".welcome-card .mark-lg"])

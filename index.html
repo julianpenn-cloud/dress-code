@@ -19,14 +19,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* The wordmark's own font: EB Garamond 600, subset to the four glyphs the name needs
+  /* The wordmark's own font: Cormorant 700 — the display cut of the same Garamond
+     lineage, which tolerates far more condensation than the text cut. Subset to the four glyphs
      and inlined (~1.7KB base64). The brand must not depend on a CDN — blocked, offline or
      slow, "Toga" would otherwise fall back to Georgia. Four glyphs, because the name is
      four letters. The rest of the page still loads EB Garamond normally. */
   @font-face {
     font-family: "Toga Mark";
     font-style: normal; font-weight: 700; font-display: swap;
-    src: url(data:font/woff2;base64,d09GMgABAAAAAAUEAA8AAAAACJQAAASqAAEAxQAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwwBmA/U1RBVEQATBEICoZshVMBNgIkAxQLDAAEIAWEEAcgG+4GKC4GnDKLNxahI3I1aoYPV77vc24PaQria+2z3yzwEYQRHaCaVamaDRDKVBwRChd7/6CtNWDCauNhVdZlPj4RebFNxK6TuQ8FjdDEqmfzx2ZtKa62UdRt78UqNjOSqP8BWjn/dO/4/52FeT0r8RD30I03QJqLE44CWhNkbNADKloYsKagXjldQgoNZAABYgBAIQg2ggAhNfBDBgyydQUBGyAnAECAkBbkUUHPE09WcixILyg1HiQNju22okd3wQFl0CkQDB8MIrMw/FabC8yMuWah8GMCXO+rHoFdLuUAAiAnUQNQBwFB8FFACRRoAF27ODIVAVj6g2IRyua4gtcB8dBdAAtBCYNnTlELKAEmQQlqugBCD/mKCUo93F7VxIPuuEN2JxvRS07M5zoAhIAP0hmQeRAA2AD/8F1QM3qzqzALFxJu1e1I2kFu7CBWUX/7lfZxPKy+bLJrchKfvxW5sCLQ0UHJujja1ihJzQbZMUPJ2kDvIjp7OwG9Dzfd3P37mnmjvaD0llrbmgxuzu+x1ad3JprteSQ90PGY6EDqH5xfO4FobQW9H/S5VSdoRmbm9mOBHtaZ0DnVs1R2MbTJ5CZujMPNy8lZx4xFXzs5bde1EqOTy897mUeSDshM7JBWk7ug3+a5MjMLSDp9PujdPOohO2ZmpA3POn028O1b9Jt6/bTssaTL07iZXAR9YY+vmmY9fh9lZx1Pr3U9EwUCXdGKQ5hobe0EveBEzCodhvCobIanJ489urUNdfLBH+ztzafK++ZhT7dPbirYJ6Eaa1R6GJTVqacd1MQYp/f2GHwbcgjzPwu8nxv3Ps9fVylV+kOMkdbSp6ZQG+8IKCRYQnBsOfTkkKwqq32vfAs/HrXjceBtYGXzgggOI2P4JtU/nq8UnmvybKRZx05PcSxj7A6vL01Ly+LSfjqS781gBbNK2u7eLu1kYMpJfdWtnbB/qWfRhDkMbHWbSU1LlNG6piHl0eL6uhhqEbrZqFPbm1fq8KXCv868WF01/gdpS51LfjatIWWqpmp2rXAGyeJSJxqBeXRVxIZ//W4uEGdRr8Civifjl9MHtVGQknO0MfYVF54VFDXXFhP/V8b+X7S+mA5bjayrtLqNgrKmna+0qkActch4kvleWFDGfjjJ46lWwUoAudU8PFThTdJjtpqmv66iiJuBkZuYkn6Ilra/pqF6bLTh9dIf2y7SD2itTroO8bF0d1HFVp0UOd3HAQABhLtbnbsnZufr/vepqF4AvCtbsQPAvylzjP9LVz3wRlqekLgoAATeccTbgGhy0j1eUO/qKARqzgaUtA41+wIm3+GEAA63cUtjBwFwcgIRZlhiYwCXIAehzDYofF6ARQdPwKZODOBQLVmDS63MTRAgltAuOmtRhLIoJbLGAKHk4kC7j9OoN7gBZYqUaBDkatACZmzAQulUWqFNAzg6oUmr1t9s5OE2QKcLkLS76ba7mBQoiDBiFhhXFCE5XakSrNDS0xgVV5IGUv3Xz/rRKZOKjNrQAv6yPEWKVOhw1PE0LJshWbO5rbqgeK7dnH9c7gJPrVhPF9oj9keb5ZZ4LT6Cr5U2NADkVjs1AAAA) format("woff2");
+    src: url(data:font/woff2;base64,d09GMgABAAAAAASsAA8AAAAACBAAAARVAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwwBmA/U1RBVEQATBEICoVchG4BNgIkAxQLDAAEIAWEGgcgG5MGCK4GHGOKfoh7OIw64vDESJfU5Tkef5GCJ7Krf1Xds+jZO0cAI39LkRhJQSaGEENGf47kytkH5APUvaGQVUqXSZmhcfkkBzCU1TUl8K7OjEZaeiiUhbrETLlsL4TkruQM/ff/3zv9U7y5BBNPqP0eNaf+qHMe3uYA64sF9D/WxrEBAyxKNEDINhtmzXplmBvXGCJ79vj1i0SAGAqgCII114EjAzNQh04pOaCABQgGAExdgRvSn9MZL+HSwWwGhs8Esx6a9Va+6wN4oNukegC623lkFF58RzkLnv8eXw2TiAGwzOH/78B2lXQEIACyTmoQICc5GUGBVEMVgMWTyXyk8A0mhuLmYxO/RcJ6AcAgqMRHQwUMkIp4LClDPYCLgMoAMJBgTRj03gzOBwUGILNggckEADymXX0UREFqKWS7sHr7aKciA08N1SSm2uhtDzvm96KlGSWJxlpgzcGccsGHn6T6QH9fC+zeVnvAGqD3uOjA7CDomqE9ZVjJ7gO9Z1wFLxxB6LXD85jdDpwj5NrpZSmPGuxfZLS8pi9elUDZNwjWnChD/X19OmMEjD2r79bNmT1VLS/odzf0ynd6wePTcOddM7d3cZQqyDw7l7H143vd1ceH2Zt6bpG4vdMe3H2cZ01eoWGL45uMvSv58MOrIp1PgxsHfCSBVVhzepafvvKMDPtgzbreiX0lMKszcKeK0U8lpgrKfL4MfkLZjXr/IoXMq6HRnAyDRKnt0lJXsr2WrO+5LkeinTq/U7ZUsSYhXdq32QY3HVXjNL5Xv6RgnSSK/gvpo2OBdMxkVKIyQyzKvAvnB6t/cYo3EARhXi0uOe66bL+rMEV91d0My1eRMFdbb/BbOcvY5X3w1LS3ttrn2rrIAE/zDHMbZvfs/LAYgyVSkq5IS+HEv5nkVrWy2RN2LQvz0bWgZQ0fMDph1jY20sc66K1KNns7+l6YUJuba/RnaKo0nMR3GPn7687f+ewTYgOKLcyXvTtZJ5g5kdKNbN3jLeqti+PTTN8wP23+gAQ7vQA7y2Ihvi/730JsNSV+bp59gZbyvBv8jMX7Az0rAnzskyM9UvXtIoqC3Ut9Q0NKcF63Bn1qfKINpiun2CE2McaSOAAAAlioHcD9Opre/MWYrwAvVq6mAvD64NnP//3/ZLOmHUQIBUDgjeHNEFUxA0H9oie/GaXroUSOQ4lcJ16+kQMCPC4jHPOR6fVxBXy2OXU2ChxDIFohi1mtEuGa1tDMU62lREJajzSp0oQoki5WosRk1kh4XETi2vyy58TjZBO0hwUbCVwokCDDxwIvPPDEFwtyGjTBA+e4MEwOA5NQBiOKmgoBHBmJAD5kFPGIwAESFBYEYHGDIQsG7kSDERZDUuARB2u0GA/3wOmOKUIpuXFUG9LB44MbHhchmDTSRSSW4BGtJeRKfQSFLKSQByG9J/mIRfQg4kr5EJrKRPhgIAUcWbBgJIhJo1wFUgc=) format("woff2");
   }
   :root {
     --paper: #f7f3ea;
@@ -85,17 +86,17 @@
      kind read as initials, and TOGA is an anagram of GOAT, so it looks like a puzzle. A
      capital T and a lowercase rest reads unmistakably as the word. The double hairline above
      is the bookplate device. */
-  .logo { display: flex; align-items: center; gap: 15px; min-width: 0; }
-  .logo .mark { width: 46px; height: 46px; flex-shrink: 0; }
+  .logo { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .logo .mark { width: 36px; height: 46px; flex-shrink: 0; }
   /* Narrow and tall. Measured: no classic serif is meaningfully narrower than another — the
      whole field sits within 2% of the same width/height ratio — so the proportions come from
      condensing the letterforms, which buys 14%. 700 rather than 600 because condensing also
      thins the vertical stems, and the heavier weight puts the optical colour back. */
   .wordmark {
-    font-family: "Toga Mark", "EB Garamond", Georgia, serif;
-    font-size: 48px; font-weight: 700; letter-spacing: 0.1px; line-height: 1;
+    font-family: "Toga Mark", Cormorant, "EB Garamond", Georgia, serif;
+    font-size: 56px; font-weight: 700; letter-spacing: 0.1px; line-height: 1;
     color: var(--green); display: inline-block; margin: 0;
-    transform: scaleX(0.80); transform-origin: left center;
+    transform: scaleX(0.72); transform-origin: left center;
   }
   /* inline-block so the rule measures the NAME, not the type block — otherwise it stretches
      to the tagline's width and reads as a header divider instead of a caption. */
@@ -108,8 +109,8 @@
   .tagline-hdr { font-size: 11.5px; color: var(--muted); margin-top: 6px; letter-spacing: 0.2px; }
   .tagline-hdr .sep { color: var(--gold); margin: 0 4px; }
   @media (max-width: 520px) {
-    .wordmark { font-size: 39px; letter-spacing: 0.1px; }
-    .logo .mark { width: 42px; height: 42px; }
+    .wordmark { font-size: 44px; letter-spacing: 0.1px; }
+    .logo .mark { width: 33px; height: 42px; }
     .logo { gap: 12px; }
     .wordmark::before { height: 3px; margin-bottom: 6px; border-top-width: 1.5px; }
     .tagline-hdr .more { display: none; } /* drop the long half on narrow screens */
@@ -154,8 +155,8 @@
   .loc-msg { font-size: 12px; color: var(--gold); min-height: 16px; margin-top: 8px; }
   .loc-current .muted { color: var(--muted); font-weight: 400; }
   .welcome-card { text-align: center; padding-top: 22px; }
-  .welcome-card .mark-lg { width: 72px; height: 72px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(34,48,31,0.25)); }
-  .welcome-card .wordmark { font-size: 40px; display: inline-block; margin: 0; transform-origin: center center; }
+  .welcome-card .mark-lg { width: 57px; height: 72px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(34,48,31,0.25)); }
+  .welcome-card .wordmark { font-size: 46px; display: inline-block; margin: 0; transform-origin: center center; }
   .welcome-lead { font-family: "EB Garamond", Georgia, serif; font-style: italic; font-size: 15px; color: var(--ink); margin: 6px 0 12px; }
   .welcome-joined:empty { display: none; }
   .welcome-joined { color: var(--green); font-weight: 600; }
@@ -373,9 +374,9 @@
   .mcell.themed { border-style: double; border-width: 3px; padding: 1px; }
 
   footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 20px; }
-  footer .brand { font-family: "Toga Mark", "EB Garamond", Georgia, serif; font-size: 22px; font-weight: 700; letter-spacing: 0.1px; color: var(--green); margin: 6px 0 2px; transform: scaleX(0.80); transform-origin: center center; }
+  footer .brand { font-family: "Toga Mark", "EB Garamond", Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: 0.1px; color: var(--green); margin: 6px 0 2px; transform: scaleX(0.72); transform-origin: center center; }
   footer .fine { font-size: 10.5px; letter-spacing: 1px; }
-  footer .mark-sm { width: 30px; height: 30px; opacity: 0.9; }
+  footer .mark-sm { width: 24px; height: 30px; opacity: 0.9; }
 </style>
 </head>
 <body>
@@ -385,15 +386,17 @@
      and rasterized for the app icon. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="toga-mark" viewBox="0 0 64 64">
-      <!-- A toga in ONE colour, and that colour is today's: --day fills it, --day-ink keylines
-           it so it can never vanish on a pale day (a white toga on cream is an outline drawing,
-           not an invisible one). The diagonal neckline is what makes it a toga and not a tunic
-           — cloth thrown over one shoulder. -->
-      <path d="M22 11 C18 12 15 16 14 21 L10 51 C9 55 12 57 16 57 L48 57 C52 57 55 55 54 51 L50 27 C49 23 46 20 42 19 C36 17 27 15 22 11 Z"
-            fill="var(--day)" stroke="var(--day-deep)" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M23 15 L45 26" stroke="var(--day-deep)" stroke-width="1.7" opacity="0.5" fill="none"/>
-      <path d="M26 24 L25 54 M38 30 L39 54" stroke="var(--day-deep)" stroke-width="1.7" opacity="0.45" fill="none"/>
+    <symbol id="toga-mark" viewBox="9 6 46 58">
+      <!-- A bathrobe in ONE colour — the day's. Proportion is most of the work: a robe is
+           clearly longer than it is wide, and at 46px a squat body reads as a shirt however
+           good the collar is. Long sleeves, a rolled collar wrapping the neck, a belt with its knot —
+           the sleeves are what stop it reading as a hospital gown instead. -->
+      <path d="M25 8 C22 9 20 12 19 16 L12 42 C11 46 12 49 15 49 L21 48 L18 59 Q32 62 46 59 L43 48 L49 49 C52 49 53 46 52 42 L45 16 C44 12 42 9 39 8 C38 13 26 13 25 8 Z"
+            fill="var(--day)" stroke="var(--day-deep)" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M26.5 40 C24.4 32 23.6 21 25.3 15.2 C26.8 10.4 37.2 10.4 38.7 15.2 C40.4 21 39.6 32 37.5 40"
+            stroke="var(--day-deep)" stroke-width="4.6" fill="none" stroke-linecap="round"/>
+      <path d="M15 40 L49 40" stroke="var(--day-deep)" stroke-width="2.6" fill="none"/>
+      <path d="M28.5 37 L35.5 37 L35.5 43 L28.5 43 Z" fill="var(--day-deep)"/>
     </symbol>
   </defs>
 </svg>
