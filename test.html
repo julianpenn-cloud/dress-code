@@ -431,6 +431,23 @@ function run() {
     A.renderAll();
     ok(worst >= 4.5, "long view text only reaches " + worst.toFixed(2) + ":1 (" + at + ")");
   });
+  group("compliance · giving is stated, never solicited");
+  test("no charitable-fund marks, no solicitation, no tax claims", () => {
+    // Fidelity Charitable requires written approval before their name is referenced on a
+    // site, and forbids Account Holders from soliciting contributions into a Giving
+    // Account. So the page must name neither the fund nor an ask, and make no tax claim.
+    const text = doc.body.textContent.replace(/\s+/g, " ");
+    ok(!/fidelity/i.test(text), "a Fidelity mark appears on the page");
+    ok(!/deductible/i.test(text), "the page makes a tax claim");
+    ok(!/giving account|donor[- ]advised|our fund|donate now|donate to us|support us/i.test(text),
+       "the page solicits into a fund");
+    ok(/world food programme/i.test(text), "the giving note should be present");
+    const gift = doc.querySelector("footer .gift");
+    ok(gift, "the footer giving note is missing");
+    const link = gift.querySelector("a");
+    ok(link && /^https:\/\//.test(link.getAttribute("href")) && link.rel.includes("noopener"),
+       "the giving link must be absolute https with rel=noopener");
+  });
   test("the long view starts closed", () => {
     // depth is available; it is never imposed
     const lv = doc.getElementById("longView");
