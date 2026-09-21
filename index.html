@@ -447,6 +447,15 @@
   footer .mark-sm { width: 24px; height: 30px; opacity: 0.9; }
   footer .gift { margin-top: 7px; }
   footer .gift a { color: var(--green); text-decoration: none; border-bottom: 1px solid rgba(47, 74, 54, 0.32); }
+  /* the colophon gets its own quiet strip: a bookplate rule, narrower than the footer */
+  footer .colophon {
+    max-width: 26rem; margin: 14px auto 0; padding-top: 10px;
+    border-top: 1px solid rgba(47, 74, 54, 0.18);
+    font-size: 10px; letter-spacing: 0.3px;
+  }
+  /* keep "built with AI assistance" whole: broken as "...built with AI / assistance" it
+     stranded one word on its own line, which reads like a mistake. It now falls as a unit. */
+  footer .colophon .nw { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -560,6 +569,11 @@
     <div class="fine gift">Toga is free — no ads, nothing to buy, and no way to give us
       money. If you'd like to give somewhere, this is where we do:
       <a href="https://www.wfp.org/" target="_blank" rel="noopener noreferrer">the World Food Programme</a>.</div>
+    <!-- Colophon. Books put this at the back, so it lives here rather than in the header.
+         The split is deliberate: the design is his, the building was AI-assisted, and the
+         line says exactly that instead of blurring the two. A test keeps the disclosure
+         from being quietly dropped later. -->
+    <div class="fine colophon">Designed by Julian Penn in Minnesota, USA &middot; <span class="nw">built with AI assistance</span></div>
   </footer>
 </div>
 

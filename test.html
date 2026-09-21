@@ -222,7 +222,14 @@ function run() {
   });
   test("no leftover team/location/person references", () => {
     const html = doc.documentElement.innerHTML;
-    for (const w of ["Cedars", "Lakeside", "Jasmin", "Julian", "Bigos"]) ok(!html.includes(w), "found \"" + w + "\" in the page");
+    for (const w of ["Cedars", "Lakeside", "Jasmin", "Bigos"]) ok(!html.includes(w), "found \"" + w + "\" in the page");
+    // The designer's own name is exempted in exactly one place: the colophon, which is
+    // authorship rather than product content. The employer and property words above stay
+    // banned everywhere, colophon included, so this stays a real guard.
+    const clone = doc.documentElement.cloneNode(true);
+    const col = clone.querySelector("footer .colophon");
+    if (col) col.remove();
+    ok(!clone.innerHTML.includes("Julian"), "found \"Julian\" outside the colophon");
   });
 
   // ---------------------------------------------------------------- brand
@@ -447,6 +454,15 @@ function run() {
     const link = gift.querySelector("a");
     ok(link && /^https:\/\//.test(link.getAttribute("href")) && link.rel.includes("noopener"),
        "the giving link must be absolute https with rel=noopener");
+  });
+  test("the colophon credits a human and discloses the AI", () => {
+    // the disclosure is a claim about honesty, so it should not be quietly dropped later
+    const col = doc.querySelector("footer .colophon");
+    ok(col, "the colophon is missing");
+    const text = col.textContent.replace(/\s+/g, " ").trim();
+    ok(/Julian Penn/.test(text), "the colophon should name the designer: " + text);
+    ok(/AI/i.test(text), "the colophon must disclose the AI assistance: " + text);
+    ok(/Minnesota/.test(text), "the colophon should carry the place: " + text);
   });
   test("the long view starts closed", () => {
     // depth is available; it is never imposed
