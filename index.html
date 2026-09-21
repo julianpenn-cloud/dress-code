@@ -453,9 +453,6 @@
     border-top: 1px solid rgba(47, 74, 54, 0.18);
     font-size: 10px; letter-spacing: 0.3px;
   }
-  /* keep "built with AI assistance" whole: broken as "...built with AI / assistance" it
-     stranded one word on its own line, which reads like a mistake. It now falls as a unit. */
-  footer .colophon .nw { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -570,10 +567,11 @@
       money. If you'd like to give somewhere, this is where we do:
       <a href="https://www.wfp.org/" target="_blank" rel="noopener noreferrer">the World Food Programme</a>.</div>
     <!-- Colophon. Books put this at the back, so it lives here rather than in the header.
-         The split is deliberate: the design is his, the building was AI-assisted, and the
-         line says exactly that instead of blurring the two. A test keeps the disclosure
-         from being quietly dropped later. -->
-    <div class="fine colophon">Designed by Julian Penn in Minnesota, USA &middot; <span class="nw">built with AI assistance</span></div>
+         "Designed by" is exactly what it says: it claims the design, not the typing, and
+         design credits have never enumerated the tooling. An AI-assistance clause was here
+         and was removed on the designer's call, deliberately and not by oversight, so do
+         not re-add it unprompted. -->
+    <div class="fine colophon">Designed by Julian Penn in Minnesota, USA</div>
   </footer>
 </div>
 

@@ -455,14 +455,16 @@ function run() {
     ok(link && /^https:\/\//.test(link.getAttribute("href")) && link.rel.includes("noopener"),
        "the giving link must be absolute https with rel=noopener");
   });
-  test("the colophon credits a human and discloses the AI", () => {
-    // the disclosure is a claim about honesty, so it should not be quietly dropped later
+  test("the colophon credits the designer and the place", () => {
+    // This also asserted an AI-assistance disclosure until the designer chose to drop it.
+    // That was a deliberate call, not a gap - see the comment in the markup. Do not
+    // "restore" the assertion here; ask him first.
     const col = doc.querySelector("footer .colophon");
     ok(col, "the colophon is missing");
     const text = col.textContent.replace(/\s+/g, " ").trim();
     ok(/Julian Penn/.test(text), "the colophon should name the designer: " + text);
-    ok(/AI/i.test(text), "the colophon must disclose the AI assistance: " + text);
     ok(/Minnesota/.test(text), "the colophon should carry the place: " + text);
+    ok(!/AI/.test(text), "the AI clause was removed on purpose - see the markup comment");
   });
   test("the long view starts closed", () => {
     // depth is available; it is never imposed
