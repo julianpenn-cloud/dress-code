@@ -445,8 +445,6 @@
   footer .brand { font-family: "Toga Mark", "EB Garamond", Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: 0.1px; color: var(--green); margin: 6px 0 2px; transform: scaleX(0.72); transform-origin: center center; }
   footer .fine { font-size: 10.5px; letter-spacing: 1px; }
   footer .mark-sm { width: 24px; height: 30px; opacity: 0.9; }
-  footer .gift { margin-top: 7px; }
-  footer .gift a { color: var(--green); text-decoration: none; border-bottom: 1px solid rgba(47, 74, 54, 0.32); }
   /* the colophon gets its own quiet strip: a bookplate rule, narrower than the footer */
   footer .colophon {
     max-width: 26rem; margin: 14px auto 0; padding-top: 10px;
@@ -558,14 +556,10 @@
     <svg class="mark-sm" aria-hidden="true"><use href="#toga-mark"/></svg>
     <div class="brand"><span class="cap">T</span>oga</div>
     <div class="fine">One color a day. Wear it if it's easy. · ❄️ 🌱 ☀️ 🍂 ☾</div>
-    <!-- Giving. A statement, never an ask, and no fund is named: Fidelity Charitable
-         requires written approval before their name is referenced on a site, and forbids
-         Account Holders from soliciting contributions into a Giving Account. Both are
-         ruled out by that, so this points at a charity's own page instead. A test guards
-         those boundaries so they cannot be crossed by accident later. -->
-    <div class="fine gift">Toga is free — no ads, nothing to buy, and no way to give us
-      money. If you'd like to give somewhere, this is where we do:
-      <a href="https://www.wfp.org/" target="_blank" rel="noopener noreferrer">the World Food Programme</a>.</div>
+    <!-- A "Toga is free / here's where to give" note lived here and was pulled: it did
+         not fit the page yet. The rules that constrain any replacement - no fund named, no
+         ask, no tax claim - are enforced in test.html under "compliance"; read that first
+         so the Fidelity research does not have to be redone. -->
     <!-- Colophon. Books put this at the back, so it lives here rather than in the header.
          "Designed by" is exactly what it says: it claims the design, not the typing, and
          design credits have never enumerated the tooling. An AI-assistance clause was here

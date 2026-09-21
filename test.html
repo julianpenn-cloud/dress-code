@@ -438,22 +438,19 @@ function run() {
     A.renderAll();
     ok(worst >= 4.5, "long view text only reaches " + worst.toFixed(2) + ":1 (" + at + ")");
   });
-  group("compliance · giving is stated, never solicited");
-  test("no charitable-fund marks, no solicitation, no tax claims", () => {
+  group("compliance · no fund named, no ask, no tax claim");
+  test("the page carries no charitable-fund mark, solicitation or tax claim", () => {
     // Fidelity Charitable requires written approval before their name is referenced on a
     // site, and forbids Account Holders from soliciting contributions into a Giving
-    // Account. So the page must name neither the fund nor an ask, and make no tax claim.
+    // Account. A giving note citing WFP lived in the footer and was pulled - it did not
+    // fit the page yet, and something better may replace it. These prohibitions hold
+    // regardless: whatever replaces it must not name the fund, ask for money, or claim a
+    // deduction. The presence checks went with the note; nothing here asserts it exists.
     const text = doc.body.textContent.replace(/\s+/g, " ");
     ok(!/fidelity/i.test(text), "a Fidelity mark appears on the page");
     ok(!/deductible/i.test(text), "the page makes a tax claim");
     ok(!/giving account|donor[- ]advised|our fund|donate now|donate to us|support us/i.test(text),
        "the page solicits into a fund");
-    ok(/world food programme/i.test(text), "the giving note should be present");
-    const gift = doc.querySelector("footer .gift");
-    ok(gift, "the footer giving note is missing");
-    const link = gift.querySelector("a");
-    ok(link && /^https:\/\//.test(link.getAttribute("href")) && link.rel.includes("noopener"),
-       "the giving link must be absolute https with rel=noopener");
   });
   test("the colophon credits the designer and the place", () => {
     // This also asserted an AI-assistance disclosure until the designer chose to drop it.
