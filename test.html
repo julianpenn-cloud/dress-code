@@ -452,6 +452,18 @@ function run() {
     ok(!/giving account|donor[- ]advised|our fund|donate now|donate to us|support us/i.test(text),
        "the page solicits into a fund");
   });
+  test("nothing is set below a legible size", () => {
+    // Found by measuring: the calendar's day labels were 7.0px and the outfit shade lists
+    // 9.0px. Both passed every contrast assertion and were still unreadable on a phone -
+    // a contrast test cannot catch a font size, so this is its own guard.
+    const floors = [[".mcell .cn", 9], [".fit-alias", 10]];
+    for (const [sel, min] of floors) {
+      const el = doc.querySelector(sel);
+      ok(el, "no element found for " + sel);
+      const px = parseFloat(app.getComputedStyle(el).fontSize);
+      ok(px >= min, sel + " is " + px + "px, below the " + min + "px floor");
+    }
+  });
   test("the colophon credits the designer and the place", () => {
     // This also asserted an AI-assistance disclosure until the designer chose to drop it.
     // That was a deliberate call, not a gap - see the comment in the markup. Do not
