@@ -228,10 +228,13 @@
   .swatch {
     position: relative;
     border-radius: var(--radius);
+    /* The hero is a card now, not a field of the day's colour: the colour is on the
+       garments. Its shadow is still cast in the day's colour, so the day is present. */
+    background: var(--card);
     box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.25) inset, 0 18px 40px -12px rgba(var(--day-rgb), 0.55);
     min-height: 190px;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 22px;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+    padding: 18px 22px 14px;
     overflow: hidden;
     cursor: default;
   }
@@ -281,10 +284,35 @@
   .theme-banner .t-emoji { font-size: 16px; }
   .theme-banner b { font-family: "EB Garamond", Georgia, serif; font-weight: 600; color: var(--day-ink); }
   .theme-banner .t-note { color: var(--muted); font-style: italic; }
-  .swatch .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
+  /* The hero IS the outfit now. The colour is on the cloth, so the field gets out of its
+     way: a paper card with the day's light falling on it, not a field of the day's colour.
+     A day-coloured garment on a day-coloured field would simply disappear into it. */
+  .swatch .glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(115% 80% at 50% 0%,
+      rgba(var(--day-rgb), 0.32) 0%, rgba(var(--day-rgb), 0.10) 55%, rgba(var(--day-rgb), 0) 100%);
+  }
+  .swatch > *:not(.glow) { position: relative; }
+  .swatch .name-row { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; }
+  .hero-pair { display: flex; align-items: flex-end; justify-content: center; gap: 4px;
+               width: 100%; margin: 6px 0 0; }
+  .hero-pair .garment { width: 110px; height: 110px; margin: 0; filter: none; }
+  .hero-pair .garment.hero-garment { width: 134px; height: 134px; }
+  .hero-pair .pg { display: flex; flex-direction: column; align-items: center; }
+  .hero-pair .pg-garments { display: flex; align-items: flex-end; gap: 2px; }
+  .hero-pair .pg-label { font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 600;
+                         letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted);
+                         margin-top: 4px; }
+  .swatch .defs { position: absolute; width: 0; height: 0; }
+  .swatch .fit-toggle { margin: 9px auto 0; }
+  .fit-shades { display: flex; flex-direction: column; gap: 9px; }
+  .fit-shade { font-size: 12.5px; line-height: 1.35; }
+  .fit-shade .role { font-family: Inter, sans-serif; font-size: 9.5px; font-weight: 700;
+                     letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted); }
+  .swatch .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.92; }
   .swatch .name { font-family: "EB Garamond", Georgia, serif; font-size: 47px; font-weight: 600; letter-spacing: 0; line-height: 1; margin: 7px 0 4px; }
-  .swatch .hex { font-size: 12px; font-weight: 600; opacity: 0.75; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
-  .swatch .tagline { font-size: 12px; margin-top: 9px; opacity: 0.82; font-weight: 500; }
+  .swatch .hex { font-size: 12px; font-weight: 600; opacity: 0.92; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .swatch .tagline { font-size: 12px; margin-top: 9px; opacity: 0.92; font-weight: 500; }
   /* Flannel note: a small pill inside the hero, in the hero's own text color */
   .swatch .flannel {
     display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px;
@@ -494,22 +522,32 @@
 
     <div class="col">
       <div class="swatch" id="swatch">
-        <div class="glass"></div>
-        <div class="eyebrow" id="swEyebrow"></div>
-        <div class="name" id="swName"></div>
-        <div class="team" id="swTeam"></div>
-        <div class="hex" id="swHex"></div>
-        <div class="tagline" id="swTag"></div>
-        <div class="flannel" id="swFlannel" hidden>🍂 Add a flannel if it works</div>
+        <svg class="defs" width="0" height="0" aria-hidden="true"><defs>
+          <linearGradient id="clothSheen" x1="0.1" y1="0" x2="0.55" y2="1">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+            <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+            <stop offset="1" stop-color="#000000" stop-opacity="0.16"/>
+          </linearGradient>
+        </defs></svg>
+        <div class="glow"></div>
         <div class="tomorrow" id="swTomorrow"></div>
-      </div>
-      <div class="theme-banner" id="themeBanner"></div>
-      <div class="outfit">
+        <div class="eyebrow" id="swEyebrow"></div>
+        <div class="name-row">
+          <div class="name" id="swName"></div>
+          <div class="team" id="swTeam"></div>
+        </div>
+        <div class="hex" id="swHex"></div>
+        <div class="hero-pair" id="heroPair"></div>
         <div class="fit-toggle" role="group" aria-label="Which piece gets today's color">
           <button class="fit-btn" id="modeTop" aria-pressed="true">Color on top</button>
           <button class="fit-btn" id="modeBottom" aria-pressed="false">Color on bottom</button>
         </div>
-        <div class="fit-row" id="fitRow"></div>
+        <div class="tagline" id="swTag"></div>
+        <div class="flannel" id="swFlannel" hidden>🍂 Add a flannel if it works</div>
+      </div>
+      <div class="theme-banner" id="themeBanner"></div>
+      <div class="outfit">
+        <div class="fit-shades" id="fitShades"></div>
         <div class="fit-note" id="fitNote"></div>
         <div class="fit-easy" id="fitEasy"></div>
       </div>
@@ -1601,8 +1639,10 @@ const easyLine = d => EASY[hash32(daySeed(d) ^ 0xEA5E) % EASY.length];
 function renderHero(date) {
   const r = colorForDate(date);
   const sw = el("swatch");
-  sw.style.background = r.shade.hex;
-  sw.style.color = contrastText(r.shade.hex);
+  // The hero no longer lays a field of the day's colour: the colour is on the garments now,
+  // so its text is ink on paper and needs no contrast flip at all.
+  sw.style.removeProperty("background");
+  sw.style.color = "var(--ink)";
   paintPage(r.shade.hex);
   document.body.dataset.season = seasonOf(date);
   const isToday = date.toDateString() === new Date().toDateString();
@@ -1673,8 +1713,13 @@ const GARMENT = {
   top:    "M26 7 L14 13 L5 29 L16 34 L18 28 L18 57 L46 57 L46 28 L48 34 L59 29 L50 13 L38 7 C36 11 28 11 26 7 Z",
   bottom: "M17 7 L47 7 L45 57 L34 57 L32 27 L30 57 L19 57 Z",
 };
-const garmentSVG = (kind, hex) =>
-  `<svg class="garment" viewBox="0 0 64 64" aria-hidden="true"><path d="${GARMENT[kind]}" fill="${hex}" stroke="rgba(34,48,31,0.35)" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+// The second path lays the hero's light onto the cloth. Same idea as the stained glass,
+// on the material you actually wear.
+const garmentSVG = (kind, hex, hero) =>
+  `<svg class="garment${hero ? " hero-garment" : ""}" viewBox="0 0 64 64" aria-hidden="true">`
+  + `<path d="${GARMENT[kind]}" fill="${hex}" stroke="rgba(34,48,31,0.35)" stroke-width="1.4" stroke-linejoin="round"/>`
+  + `<path d="${GARMENT[kind]}" fill="url(#clothSheen)" style="mix-blend-mode:soft-light"/></svg>`;
+const ROLE_HUMAN = { top: "On top", bottom: "Down below" };
 
 const MODE_KEY = "toga.mode";
 const getMode = () => (localStorage.getItem(MODE_KEY) === "bottom" ? "bottom" : "top");
@@ -1687,18 +1732,17 @@ function renderOutfit(date, r) {
     el(id).classList.toggle("on", on);
     el(id).setAttribute("aria-pressed", String(on));
   }
-  // The day's color is fixed; the pair are the options, so it gets the larger cell.
-  const items = [{ piece: fit.hero, role: fit.role, hero: true }].concat(
-    fit.pair.map((p, i) => ({ piece: p, role: fit.pairRole, hero: false, n: i + 1 })));
-  const numbered = fit.pair.length > 1;
-  el("fitRow").style.gridTemplateColumns = items.map(i => (i.hero ? "1.25fr" : "1fr")).join(" ");
-  el("fitRow").innerHTML = items.map(i =>
-    `<div class="fit-piece${i.hero ? " hero-piece" : ""}">
-       ${garmentSVG(i.role, i.piece.hex)}
-       <div class="fit-label">${i.role}${!i.hero && numbered ? " · " + i.n : ""}</div>
-       <div class="fit-name">${i.piece.label}</div>
-       <div class="fit-alias">${i.piece.alias}</div>
-     </div>`).join("");
+  // The day's color is fixed and the pair are the options, so its garment is the larger one,
+  // and the labels live inside each group so they line up with their own garments.
+  el("heroPair").innerHTML =
+    `<div class="pg"><div class="pg-garments">${garmentSVG(fit.role, fit.hero.hex, true)}</div>`
+    + `<div class="pg-label">${ROLE_HUMAN[fit.role]}</div></div>`
+    + `<div class="pg"><div class="pg-garments">${fit.pair.map(p => garmentSVG(fit.pairRole, p.hex)).join("")}</div>`
+    + `<div class="pg-label">${fit.pair.length > 1 ? "Two options" : ROLE_HUMAN[fit.pairRole]}</div></div>`;
+  el("fitShades").innerHTML = [{ piece: fit.hero, role: fit.role }]
+    .concat(fit.pair.map(p => ({ piece: p, role: fit.pairRole })))
+    .map(x => `<div class="fit-shade"><span class="role">${ROLE_HUMAN[x.role]}</span> `
+      + `<b>${x.piece.label}</b> <i>${x.piece.alias}</i></div>`).join("");
   el("fitNote").innerHTML = fit.note;
   el("fitEasy").textContent = easyLine(date);
 }

@@ -455,8 +455,9 @@ function run() {
   test("nothing is set below a legible size", () => {
     // Found by measuring: the calendar's day labels were 7.0px and the outfit shade lists
     // 9.0px. Both passed every contrast assertion and were still unreadable on a phone -
-    // a contrast test cannot catch a font size, so this is its own guard.
-    const floors = [[".mcell .cn", 9], [".fit-alias", 10]];
+    // a contrast test cannot catch a font size, so this is its own guard. The outfit line
+    // moved from .fit-alias to .fit-shade when the hero took over the garments.
+    const floors = [[".mcell .cn", 9], [".fit-shade", 10]];
     for (const [sel, min] of floors) {
       const el = doc.querySelector(sel);
       ok(el, "no element found for " + sel);
@@ -518,8 +519,43 @@ function run() {
     eq(app.getComputedStyle(doc.body).backgroundColor, expected);
     doc.body.style.transition = "";
   });
-  test("the hero swatch picks readable text for its own background", () => {
-    for (const c of A.PALETTE) ok(ratio(A.contrastText(c.hex), c.hex) >= 3, c.label + " hero text fails large-text contrast");
+  test("the hero is a paper card with the outfit on it, not a field of the day's colour", () => {
+    // This replaces a test that checked the hero flipped its ink to stay readable ON the
+    // day's colour. It no longer has to: the colour is on the garments, and the hero is a
+    // card. Keeping the old assertion would have kept passing while testing nothing.
+    const sw = doc.getElementById("swatch");
+    ok(!sw.style.background, "the hero still paints a field of the day's colour");
+    const toHex = s => "#" + s.match(/\d+/g).slice(0, 3)
+      .map(v => (+v).toString(16).padStart(2, "0")).join("");
+    const card = toHex(app.getComputedStyle(sw).backgroundColor);
+    const fills = [...sw.querySelectorAll(".hero-pair .garment path")]
+      .map(p => p.getAttribute("fill")).filter(f => /^#[0-9a-f]{6}$/i.test(f || ""));
+    ok(fills.length >= 2, "the hero should show the day's garment plus its companion, got " + fills.join(","));
+    // every garment wears a real palette colour, and the shade list names each one
+    const known = A.PALETTE.concat(A.BOTTOMS);
+    const shades = doc.getElementById("fitShades").textContent;
+    for (const f of fills) {
+      const c = known.find(k => k.hex.toLowerCase() === f.toLowerCase());
+      ok(c, "a garment is wearing a colour that is not in the palette: " + f);
+      if (c) ok(shades.includes(c.label), "the shade list omits " + c.label);
+    }
+    // and the hero's own text is ink on that card, cleared at every palette colour, because
+    // the glow lays a tint of the day over it
+    const glow = hx => { const c = A.hexRGB(hx), k = A.hexRGB(card);
+      return "#" + c.map((v, i) => Math.round(v * 0.32 + k[i] * 0.68).toString(16).padStart(2, "0")).join(""); };
+    const worst = [];
+    for (const c of A.PALETTE) {
+      const surf = glow(c.hex);
+      for (const [sel, min, op] of [[".name", 3, 1], [".team", 4.5, 1], [".hex", 4.5, 0.92], [".eyebrow", 4.5, 0.92]]) {
+        const ink = app.getComputedStyle(sw.querySelector(sel)).color;
+        const srgb = A.hexRGB(surf);
+        const eff = "#" + A.hexRGB(toHex(ink))
+          .map((v, i) => Math.round(v * op + srgb[i] * (1 - op)).toString(16).padStart(2, "0")).join("");
+        const r = ratio(eff, surf);
+        if (r < min) worst.push(c.label + " " + sel + " " + r.toFixed(2));
+      }
+    }
+    eq(worst.length, 0, "hero text under its floor on: " + worst.slice(0, 4).join(", "));
   });
 
   // ---------------------------------------------------------------- outfit
