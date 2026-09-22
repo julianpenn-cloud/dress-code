@@ -294,12 +294,18 @@
   }
   .swatch > *:not(.glow) { position: relative; }
   .swatch .name-row { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; }
-  .hero-pair { display: flex; align-items: flex-end; justify-content: center; gap: 4px;
+  /* Sized off the viewport rather than fixed, because fixed widths overflowed the card at
+     every phone width (36px at 390, 51px at 360) and the hero's overflow:hidden cut the
+     last garment off rather than showing a scrollbar. Capped so desktop is unchanged. */
+  .hero-pair { --g: min(20vw, 110px);
+               display: flex; align-items: flex-end; justify-content: center; gap: 4px;
                width: 100%; margin: 6px 0 0; }
-  .hero-pair .garment { width: 110px; height: 110px; margin: 0; filter: none; }
-  .hero-pair .garment.hero-garment { width: 134px; height: 134px; }
+  .hero-pair .garment { width: var(--g); height: var(--g); margin: 0; filter: none; }
+  .hero-pair .garment.hero-garment { width: calc(var(--g) * 1.22); height: calc(var(--g) * 1.22); }
   .hero-pair .pg { display: flex; flex-direction: column; align-items: center; }
   .hero-pair .pg-garments { display: flex; align-items: flex-end; gap: 2px; }
+  .hero-pair .or { font-family: "EB Garamond", Georgia, serif; font-style: italic;
+                   font-size: 15px; color: var(--muted); align-self: center; padding: 0 2px; }
   .hero-pair .pg-label { font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 600;
                          letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted);
                          margin-top: 4px; }
@@ -445,9 +451,11 @@
   }
   .nav-btn:hover { border-color: var(--gold); color: var(--gold); }
   .nav-btn:active { transform: scale(0.94); }
-  .month-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+  /* minmax(0, 1fr), not 1fr: plain 1fr floors each column at min-content, so one long
+     day label widens the grid past its panel and gives the page a sideways scroll. */
+  .month-head { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-bottom: 3px; }
   .month-head span { text-align: center; font-size: 9px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
-  .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
   /* Mosaic: each cell is a pane washed in its day's color (--c set inline). Number stays dark. */
   .mcell {
     --c: 230, 225, 215;
@@ -462,6 +470,7 @@
   .mcell .bar { width: 100%; height: 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(34,48,31,0.22); }
   .mcell .cn { font-size: 9px; font-weight: 600; color: var(--ink); opacity: 0.78; line-height: 1; text-align: center; }
   .mcell.blank { background: transparent; border: none; cursor: default; }
+  @media (max-width: 379px) { .mcell .cn { display: none; } }
   .mcell.offduty { background: linear-gradient(165deg, rgba(var(--c), 0.22), rgba(var(--c), 0.10)), var(--paper); border-color: rgba(var(--c), 0.35); }
   .mcell.offduty .bar { filter: saturate(0.6); opacity: 0.8; }
   .mcell.offduty .cn { opacity: 0.55; }
@@ -850,8 +859,10 @@ const VERSES = {
 //  Small additions, one line each
 const FLANNEL_LINES = ["And a flannel over it, if you've got one.", "Flannel over the top wouldn't hurt.", "Add a flannel. It's that kind of day."];
 const WEEKEND_LINES = ["Or don't. It's the weekend.", "No one's checking. Wear it anyway.", "Off-duty. The color's just here if you want it."];
-//  The verse for a day: color x coarse season, variant chosen by date. Holidays and
-//  theme weeks get their own line up top; flannel and weekends add a soft tail.
+//  The verse for a day: color x coarse season, variant chosen by date. A holiday gets
+//  its own line up top. A theme week does NOT: the banner above the outfit already names
+//  the theme, its emoji and its note, and saying it here put the same sentence on screen
+//  twice. Flannel and weekends add a soft tail.
 function verseFor(d, r) {
   const bank = VERSES[r.shade.name] || {};
   const pool = bank[seasonOf(d)] || Object.values(bank).flat();
@@ -860,7 +871,6 @@ function verseFor(d, r) {
   const pick = arr => arr[roll % arr.length];
   const lines = [];
   if (r.holiday) lines.push(r.holiday.emoji + " " + r.holiday.name + " — " + r.holiday.note + ".");
-  else if (r.theme) lines.push(r.theme.emoji + " " + r.theme.name + ". " + r.theme.note + ".");
   if (pool.length) lines.push(pick(pool));
   const tail = r.isFlannel ? pick(FLANNEL_LINES) : r.weekend ? pick(WEEKEND_LINES) : null;
   return { body: lines.join("\n"), tail };
@@ -1737,7 +1747,9 @@ function renderOutfit(date, r) {
   el("heroPair").innerHTML =
     `<div class="pg"><div class="pg-garments">${garmentSVG(fit.role, fit.hero.hex, true)}</div>`
     + `<div class="pg-label">${ROLE_HUMAN[fit.role]}</div></div>`
-    + `<div class="pg"><div class="pg-garments">${fit.pair.map(p => garmentSVG(fit.pairRole, p.hex)).join("")}</div>`
+    + `<div class="pg"><div class="pg-garments">`
+    + fit.pair.map((p, i) => (i ? `<span class="or">or</span>` : "") + garmentSVG(fit.pairRole, p.hex)).join("")
+    + `</div>`
     + `<div class="pg-label">${fit.pair.length > 1 ? "Two options" : ROLE_HUMAN[fit.pairRole]}</div></div>`;
   el("fitShades").innerHTML = [{ piece: fit.hero, role: fit.role }]
     .concat(fit.pair.map(p => ({ piece: p, role: fit.pairRole })))
@@ -1865,6 +1877,7 @@ window.TOGA = {
   PALETTE, VERSES, THEME_WEEKS, HOLIDAYS, BOTTOMS, REGIONS, PANTS_OK, QUITE_NEUTRAL,
   // engine
   colorForDate, outfitFor, verseFor, byLabel, seasonFor, getMoon, daySeed, hash32,
+  renderHero,   // renders ANY day's hero + banner + verse: the suite tests theme weeks with it
   moodFromCode, regionOf, paintPage, contrastText, renderAll, hexRGB, isQuiet, easyLine,
   // sky — real astronomy, all computed locally
   skyFor, solarLongitude, solarDeclination, dayLengthHours, dayLengthDeltaMinutes,

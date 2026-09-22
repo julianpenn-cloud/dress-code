@@ -559,6 +559,56 @@ function run() {
   });
 
   // ---------------------------------------------------------------- outfit
+  test("the month grid fits inside its panel", () => {
+    // A grid of `1fr` columns floors at min-content, so a long day label widens the grid
+    // past its panel and the page scrolls sideways. Checked here at the suite's width; the
+    // narrow widths are swept in the verify script, which is what caught it.
+    const grid = doc.querySelector(".month-grid");
+    ok(grid, "no month grid found");
+    ok(grid.scrollWidth <= grid.clientWidth + 1,
+       "the month grid overflows its panel by " + (grid.scrollWidth - grid.clientWidth) + "px");
+  });
+  test("the outfit graphic fits inside its card", () => {
+    // The garments were fixed-pixel, so they overflowed the hero at every phone width and
+    // overflow:hidden clipped the last one - invisible to a height check, a screenshot, and
+    // three separate vision reviews. Only scrollWidth against clientWidth shows it.
+    A.renderHero(new Date(2026, 8, 21));
+    const pair = doc.getElementById("heroPair");
+    ok(pair.scrollWidth <= pair.clientWidth + 1,
+       "the garments overflow their row by " + (pair.scrollWidth - pair.clientWidth) + "px");
+    const sw = doc.getElementById("swatch");
+    ok(sw.scrollWidth <= sw.clientWidth + 1, "the hero's content overflows the card");
+  });
+  test('the options are joined by an "or", and only when there are two', () => {
+    // Three garments in a row read as three things to wear. The separator states that the
+    // pair is a choice - and monochrome weeks return a one-item pair, which must not grow one.
+    for (const mode of ["top", "bottom"]) {
+      const d = new Date(2026, 8, 21), f = A.outfitFor(d, A.colorForDate(d), mode);
+      A.renderHero(d);
+      const group = [...doc.querySelectorAll("#heroPair .pg")][1];
+      const ors = group.querySelectorAll(".or").length;
+      const gs = group.querySelectorAll(".garment").length;
+      eq(ors, gs > 1 ? gs - 1 : 0, "separators should be one fewer than the options (" + gs + " garments)");
+    }
+  });
+  test("a theme week is named once, by the banner", () => {
+    // The banner and the verse both used to say "<emoji> <name>. <note>." - the same
+    // sentence twice on one screen. The banner is the better of the two (it is styled,
+    // bordered, and shows the theme's own colours), so the verse gave it up.
+    let found = 0;
+    for (let i = 0; i < SPAN; i++) {
+      const d = dayAt(i), r = A.colorForDate(d);
+      if (!r.theme) continue;
+      found++;
+      A.renderHero(d);
+      const visible = [doc.getElementById("themeBanner"), doc.getElementById("verse"), doc.getElementById("verseTail")]
+        .map(e => e.textContent).join(" ");
+      const n = visible.split(r.theme.name).length - 1;
+      if (n !== 1) { eq(n, 1, "theme named " + n + " times on " + d.toDateString()); return; }
+      ok(doc.getElementById("themeBanner").textContent.includes(r.theme.name), "the banner dropped the theme");
+    }
+    ok(found > 0, "no theme week found in two years - this test proved nothing");
+  });
   group("outfit · the pairing rules");
   const trousers = new Set(A.BOTTOMS.map(b => b.label));
   const pieces = f => [f.hero].concat(f.pair);              // everything shown today
